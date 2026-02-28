@@ -1,0 +1,35 @@
+{
+  "name": "recon-test",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "generate:evidence": "node scripts/generate-demo-evidence.mjs --limit 30",
+    "generate:evidence:clean": "node scripts/generate-demo-evidence.mjs --clean --limit 30"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.66.0",
+    "oidc-client-ts": "^3.4.1",
+    "papaparse": "^5.4.1",
+    "pdfkit": "^0.17.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-oidc-context": "^3.3.0",
+    "react-router-dom": "^6.26.2",
+    "zustand": "^4.5.2"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.3.14",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.41",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.6.2",
+    "vite": "^5.4.2"
+  }
+}

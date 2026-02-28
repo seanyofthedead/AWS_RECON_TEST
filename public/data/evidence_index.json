@@ -1,0 +1,38 @@
+{
+  "TX-1000001": [
+    {
+      "type": "gl_posting_extract",
+      "file": "TX-1000001_GL_Posting_Extract_GLB-1025-001.pdf",
+      "TransactionID": "TX-1000001",
+      "Doc_Number": "DOC-334053",
+      "Amount": 23341.05,
+      "PostingDate": "2025-10-25"
+    },
+    {
+      "type": "invoice",
+      "file": "TX-1000001_Invoice_INV-2719583.pdf",
+      "Invoice_ID": "INV-2719583",
+      "PO_Number": "PO-28289",
+      "Amount": 23341.05
+    },
+    {
+      "type": "purchase_order",
+      "file": "TX-1000001_PO_PO-28289.pdf",
+      "PO_Number": "PO-28289",
+      "Amount": 23341.05,
+      "ERP_Qty": 23
+    },
+    {
+      "type": "receipt",
+      "file": "TX-1000001_Receipt_GR-1000001-1025.pdf",
+      "PO_Number": "PO-28289",
+      "Feeder_Qty": 23,
+      "ReceiptDate": "2025-10-26"
+    },
+    {
+      "type": "policy_excerpt",
+      "file": "TX-1000001_Policy_3Way_Match_FIN-POL-AP-3WM-001.pdf",
+      "Policy_ID": "FIN-POL-AP-3WM-001"
+    }
+  ]
+}

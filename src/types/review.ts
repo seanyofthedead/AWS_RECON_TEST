@@ -1,0 +1,37 @@
+export type ReviewDecisionType =
+  | "CLOSE_AS_RESOLVED"
+  | "OVERRIDE"
+  | "ESCALATE"
+  | "REQUEST_MORE_EVIDENCE";
+
+export type ReviewDecisionAction = "ACCEPT" | "OVERRIDE" | "ESCALATE" | "REQUEST_MORE_EVIDENCE";
+
+export type ReviewReasonCode =
+  | "POLICY_MATCH"
+  | "MISSING_DOCUMENTATION"
+  | "VENDOR_EXCEPTION"
+  | "AMOUNT_VARIANCE"
+  | "NEEDS_HUMAN_REVIEW"
+  | "OTHER";
+
+export interface ReviewRequestNormalized {
+  decisionType: ReviewDecisionType;
+  reasonCode: ReviewReasonCode;
+  rationale: string;
+  evidenceIds: string[];
+}
+
+export type ReviewRequest =
+  | ReviewRequestNormalized
+  | {
+      decision: ReviewDecisionAction;
+      rationaleText: string;
+      reasonCode?: ReviewReasonCode;
+      evidenceIds?: string[];
+    };
+
+export interface ReviewDecision extends ReviewRequestNormalized {
+  caseId: string;
+  reviewer: string;
+  timestamp: string;
+}
