@@ -58,6 +58,19 @@ export const SettingsPage = () => {
             />
             <span>Mock provider (in-browser CSV)</span>
           </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              name="provider"
+              value="api"
+              checked={provider === "api"}
+              onChange={() => setProvider("api")}
+            />
+            <span>API provider (backend HTTP API)</span>
+          </label>
+          <p className="text-xs text-slate-500">
+            API base URL: {import.meta.env.VITE_API_BASE_URL || "not configured (uses same-origin /api)"}
+          </p>
         </div>
       </section>
 
@@ -76,7 +89,10 @@ export const SettingsPage = () => {
       </section>
 
       <section className="text-xs text-slate-400">
-        Build: {typeof __BUILD_TIMESTAMP__ !== "undefined" ? __BUILD_TIMESTAMP__ : "dev"}
+        Build:{" "}
+        {typeof __BUILD_TIMESTAMP__ !== "undefined"
+          ? __BUILD_TIMESTAMP__.slice(0, 10)
+          : "dev"}
       </section>
 
       <ConfirmModal

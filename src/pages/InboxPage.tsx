@@ -17,6 +17,7 @@ import { getRootCauseLabel } from "../utils/rootCause";
 import { measureDev } from "../utils/perf";
 import { useRoutePerf } from "../hooks/useRoutePerf";
 import { getPrimaryRecommendation } from "../utils/recommendations";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export const InboxPage = () => {
   useRoutePerf("Inbox");
@@ -148,7 +149,7 @@ export const InboxPage = () => {
       const rec = getPrimaryRecommendation({ caseId: row.caseId, transaction: row });
       map.set(row.caseId, {
         title: rec.title,
-        nextStep: rec.nextSteps[0] ?? rec.title,
+        nextStep: rec.title,
         hasEntry: Boolean(rec.bookingEntry)
       });
     });
@@ -636,8 +637,8 @@ export const InboxPage = () => {
                       <div className="text-xs text-slate-500">{row.transactionId}</div>
                     </td>
                     <td className="px-4 py-3">{row.vendor}</td>
-                    <td className="px-4 py-3">${row.amount.toFixed(2)}</td>
-                    <td className="px-4 py-3">${row.variance.toFixed(2)}</td>
+                    <td className="px-4 py-3">{formatCurrency(row.amount)}</td>
+                    <td className="px-4 py-3">{formatCurrency(row.variance)}</td>
                     <td className="px-4 py-3">
                       <ConfidencePill band={rowBand} score={row.confidenceScore} />
                     </td>

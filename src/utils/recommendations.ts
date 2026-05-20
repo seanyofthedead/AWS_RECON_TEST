@@ -21,11 +21,13 @@ const accountMap = {
   expense: "Expense",
   accrued: "Accrued Expenses",
   ap: "Accounts Payable",
-  revenue: "Revenue",
-  deferred: "Deferred Revenue",
-  cash: "Cash",
+  suspense: "Suspense / Clearing",
+  grIr: "GR/IR Clearing",
+  ppv: "PPV / COGS",
   fx: "FX Gain/Loss",
-  intercompany: "Intercompany"
+  intercompany: "Intercompany",
+  correctExpense: "Correct Expense",
+  misclassifiedExpense: "Misclassified Expense"
 };
 
 const safeStorage = () => {
@@ -70,6 +72,13 @@ const formatPeriod = (dateValue?: string) => {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 };
 
+const buildMemo = (base: string, transaction?: TransactionRow) => {
+  if (!transaction) {
+    return base;
+  }
+  return `${base} · ${transaction.vendor} · ${transaction.transactionId}`;
+};
+
 const buildEntry = (options: {
   debitAccount: string;
   creditAccount: string;
@@ -94,29 +103,70 @@ const buildEntry = (options: {
 };
 
 const confidenceForCategory = (category: RootCauseCategory): RecommendationConfidence => {
-  if (category === "VENDOR_RATE_ERROR") {
-    return "Medium";
-  }
   if (category === "OTHER") {
     return "Low";
+  }
+  if (
+    category === "VENDOR_RATE_ERROR" ||
+    category === "STALE_MASTER_DATA" ||
+    category === "BATCH_INTERFACE" ||
+    category === "REFERENCE_DATA" ||
+    category === "WRONG_VENDOR_MAPPING"
+  ) {
+    return "Medium";
   }
   return "High";
 };
 
+const CANONICAL_TO_CATEGORY: Record<string, RootCauseCategory> = {
+  "Timing Difference": "TIMING",
+  "Accrual Reversal": "REVERSAL_MISSING",
+  "Missing Receipt": "MISSING_RECEIPT",
+  "Manual Entry Error": "MANUAL_ENTRY_ERROR",
+  "Stale Master Data": "STALE_MASTER_DATA",
+  "Reference Data Misalignment": "REFERENCE_DATA",
+  "Wrong PO Reference": "WRONG_PO_REFERENCE",
+  "Batch Interface Failure": "BATCH_INTERFACE",
+  "Duplicate Transaction": "DUPLICATE",
+  "Unit of Measure Mismatch": "UOM_MISMATCH",
+  "Partial Posting": "PARTIAL_POSTING",
+  "Wrong Vendor Mapping": "WRONG_VENDOR_MAPPING",
+  "Price Variance": "PRICE_VARIANCE",
+  "Conversion Error": "CONVERSION_ERROR",
+  "Unknown / Needs Review": "OTHER",
+  Other: "OTHER"
+};
+
 export const deriveRootCause = (input: RecommendationInput): RootCauseCategory => {
-  const label = input.aiReason ?? (input.transaction ? getRootCauseLabel(input.transaction) : "");
-  const normalized = label.toLowerCase();
+  if (input.transaction) {
+    const canonical = getRootCauseLabel(input.transaction);
+    const mapped = CANONICAL_TO_CATEGORY[canonical];
+    if (mapped) {
+      return mapped;
+    }
+  }
+  const reason = input.aiReason?.trim() ?? "";
+  if (reason && CANONICAL_TO_CATEGORY[reason]) {
+    return CANONICAL_TO_CATEGORY[reason];
+  }
+  const normalized = reason.toLowerCase();
   if (normalized.includes("timing")) {
     return "TIMING";
   }
-  if (normalized.includes("pricing")) {
-    return "VENDOR_RATE_ERROR";
-  }
-  if (normalized.includes("contract")) {
-    return "MISCODED_ACCOUNT";
-  }
-  if (normalized.includes("quantity")) {
+  if (normalized.includes("duplicate")) {
     return "DUPLICATE";
+  }
+  if (normalized.includes("receipt")) {
+    return "MISSING_RECEIPT";
+  }
+  if (normalized.includes("price")) {
+    return "PRICE_VARIANCE";
+  }
+  if (normalized.includes("uom") || normalized.includes("unit of measure")) {
+    return "UOM_MISMATCH";
+  }
+  if (normalized.includes("conversion")) {
+    return "CONVERSION_ERROR";
   }
   const variance = input.transaction?.variance ?? 0;
   if (variance < 0) {
@@ -125,156 +175,281 @@ export const deriveRootCause = (input: RecommendationInput): RootCauseCategory =
   return "MISSING_ACCRUAL";
 };
 
-const recommendationTemplates: Record<
-  RootCauseCategory,
-  (input: RecommendationInput) => Recommendation
-> = {
-  TIMING: (input) => {
+type TemplateBuilder = (input: RecommendationInput) => Recommendation;
+
+const makeBookedTemplate = (config: {
+  category: RootCauseCategory;
+  id: string;
+  title: string;
+  rationale: string;
+  nextSteps: string[];
+  debitAccount: string;
+  creditAccount: string;
+}): TemplateBuilder => {
+  return (input) => {
     const amount = input.transaction?.variance ?? 0;
-    const memo = "Accrue timing variance";
     return {
-      id: "rec-timing",
-      title: "Accrue timing variance",
-      nextSteps: [
-        "Check timing window",
-        "Book accrual for variance",
-        "Schedule reversal next period"
-      ],
+      id: config.id,
+      title: config.title,
+      nextSteps: config.nextSteps,
       bookingEntry: buildEntry({
-        debitAccount: accountMap.expense,
-        creditAccount: accountMap.accrued,
+        debitAccount: config.debitAccount,
+        creditAccount: config.creditAccount,
         amount,
-        memo,
+        memo: buildMemo(config.title, input.transaction),
         effectiveDate: input.transaction?.postingDate,
         period: formatPeriod(input.transaction?.postingDate),
         reverse: amount < 0
       }),
-      confidence: confidenceForCategory("TIMING"),
-      rationale: "Timing gap likely",
+      confidence: confidenceForCategory(config.category),
+      rationale: config.rationale,
       source: "rules"
     };
-  },
-  DUPLICATE: (input) => {
-    const amount = input.transaction?.variance ?? 0;
-    const memo = "Reverse duplicate charge";
-    return {
-      id: "rec-duplicate",
-      title: "Reverse duplicate charge",
-      nextSteps: [
-        "Confirm duplicate transaction",
-        "Reverse duplicate entry",
-        "Notify vendor if needed"
-      ],
-      bookingEntry: buildEntry({
-        debitAccount: accountMap.ap,
-        creditAccount: accountMap.expense,
-        amount,
-        memo,
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
-      }),
-      confidence: confidenceForCategory("DUPLICATE"),
-      rationale: "Duplicate pattern detected",
-      source: "rules"
-    };
-  },
-  MISCODED_ACCOUNT: (input) => {
-    const amount = input.transaction?.variance ?? 0;
-    const memo = "Reclass miscodings";
-    return {
-      id: "rec-reclass",
-      title: "Reclass account coding",
-      nextSteps: ["Verify correct account", "Reclass entry", "Update vendor mapping"],
-      bookingEntry: buildEntry({
-        debitAccount: "Correct Expense",
-        creditAccount: "Misclassified Expense",
-        amount,
-        memo,
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
-      }),
-      confidence: confidenceForCategory("MISCODED_ACCOUNT"),
-      rationale: "Account mismatch likely",
-      source: "rules"
-    };
-  },
-  MISSING_ACCRUAL: (input) => {
-    const amount = input.transaction?.variance ?? 0;
-    const memo = "Book missing accrual";
-    return {
-      id: "rec-missing-accrual",
-      title: "Book missing accrual",
-      nextSteps: ["Confirm service period", "Book accrual entry", "Schedule reversal"],
-      bookingEntry: buildEntry({
-        debitAccount: accountMap.expense,
-        creditAccount: accountMap.accrued,
-        amount,
-        memo,
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
-      }),
-      confidence: confidenceForCategory("MISSING_ACCRUAL"),
-      rationale: "Accrual not recorded",
-      source: "rules"
-    };
-  },
-  REVERSAL_MISSING: (input) => {
-    const amount = input.transaction?.variance ?? 0;
-    const memo = "Record missing reversal";
-    return {
-      id: "rec-reversal",
-      title: "Record missing reversal",
-      nextSteps: ["Locate prior accrual", "Prepare reversal entry", "Verify period close"],
-      bookingEntry: buildEntry({
-        debitAccount: accountMap.accrued,
-        creditAccount: accountMap.expense,
-        amount,
-        memo,
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
-      }),
-      confidence: confidenceForCategory("REVERSAL_MISSING"),
-      rationale: "Reversal not recorded",
-      source: "rules"
-    };
-  },
+  };
+};
+
+const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
+  TIMING: makeBookedTemplate({
+    category: "TIMING",
+    id: "rec-timing",
+    title: "Accrue timing variance",
+    rationale: "Posting straddles period close",
+    nextSteps: [
+      "Confirm service period extends across close",
+      "Book accrual for variance",
+      "Schedule reversal next period"
+    ],
+    debitAccount: accountMap.expense,
+    creditAccount: accountMap.accrued
+  }),
+  DUPLICATE: makeBookedTemplate({
+    category: "DUPLICATE",
+    id: "rec-duplicate",
+    title: "Reverse duplicate charge",
+    rationale: "Same invoice posted more than once",
+    nextSteps: [
+      "Confirm both postings reference the same invoice",
+      "Reverse duplicate entry",
+      "Notify vendor if remittance already sent"
+    ],
+    debitAccount: accountMap.ap,
+    creditAccount: accountMap.expense
+  }),
+  REVERSAL_MISSING: makeBookedTemplate({
+    category: "REVERSAL_MISSING",
+    id: "rec-reversal",
+    title: "Record missing accrual reversal",
+    rationale: "Prior period accrual not reversed",
+    nextSteps: [
+      "Locate prior accrual entry",
+      "Prepare reversal entry",
+      "Verify period is still open for posting"
+    ],
+    debitAccount: accountMap.accrued,
+    creditAccount: accountMap.expense
+  }),
+  MISSING_RECEIPT: makeBookedTemplate({
+    category: "MISSING_RECEIPT",
+    id: "rec-missing-receipt",
+    title: "Clear GR/IR for missing receipt",
+    rationale: "Goods received but no receipt posted",
+    nextSteps: [
+      "Confirm goods received with receiving team",
+      "Post receipt in receiving system",
+      "Match invoice to receipt and clear GR/IR"
+    ],
+    debitAccount: accountMap.grIr,
+    creditAccount: accountMap.ap
+  }),
+  MANUAL_ENTRY_ERROR: makeBookedTemplate({
+    category: "MANUAL_ENTRY_ERROR",
+    id: "rec-manual-entry",
+    title: "Correct manual entry error",
+    rationale: "Keying error in original posting",
+    nextSteps: [
+      "Compare keyed amount against source document",
+      "Reverse incorrect line",
+      "Re-post with correct amount"
+    ],
+    debitAccount: accountMap.expense,
+    creditAccount: accountMap.ap
+  }),
+  STALE_MASTER_DATA: makeBookedTemplate({
+    category: "STALE_MASTER_DATA",
+    id: "rec-stale-master",
+    title: "Refresh vendor master data",
+    rationale: "Vendor master data is out of date",
+    nextSteps: [
+      "Verify vendor master against latest source",
+      "Refresh master data feed",
+      "Re-evaluate variance after refresh"
+    ],
+    debitAccount: accountMap.suspense,
+    creditAccount: accountMap.ap
+  }),
+  REFERENCE_DATA: makeBookedTemplate({
+    category: "REFERENCE_DATA",
+    id: "rec-reference-data",
+    title: "Reclass to Suspense pending mapping fix",
+    rationale: "Mapping codes inconsistent across systems",
+    nextSteps: [
+      "Identify mapping codes that disagree across systems",
+      "Reclass posting to Suspense / Clearing",
+      "Re-post once reference data is realigned"
+    ],
+    debitAccount: accountMap.suspense,
+    creditAccount: accountMap.ap
+  }),
+  WRONG_PO_REFERENCE: makeBookedTemplate({
+    category: "WRONG_PO_REFERENCE",
+    id: "rec-wrong-po",
+    title: "Re-link invoice to correct PO",
+    rationale: "Invoice references different PO than recorded",
+    nextSteps: [
+      "Verify invoice PO with vendor or procurement",
+      "Reverse posting against the incorrect PO",
+      "Re-post against the correct PO"
+    ],
+    debitAccount: accountMap.suspense,
+    creditAccount: accountMap.ap
+  }),
+  BATCH_INTERFACE: makeBookedTemplate({
+    category: "BATCH_INTERFACE",
+    id: "rec-batch-interface",
+    title: "Re-run failed batch interface",
+    rationale: "Inbound batch interface did not post",
+    nextSteps: [
+      "Inspect batch interface log for the failure",
+      "Re-submit the failed batch",
+      "Confirm posting lands in the target ledger"
+    ],
+    debitAccount: accountMap.suspense,
+    creditAccount: accountMap.ap
+  }),
+  UOM_MISMATCH: makeBookedTemplate({
+    category: "UOM_MISMATCH",
+    id: "rec-uom",
+    title: "Re-rate UoM and post adjustment",
+    rationale: "Quantity unit differs between PO and invoice",
+    nextSteps: [
+      "Confirm unit of measure on PO versus invoice",
+      "Re-rate quantity to the canonical UoM",
+      "Post UoM-aligned adjustment"
+    ],
+    debitAccount: accountMap.ppv,
+    creditAccount: accountMap.ap
+  }),
+  PARTIAL_POSTING: makeBookedTemplate({
+    category: "PARTIAL_POSTING",
+    id: "rec-partial-posting",
+    title: "Complete partial posting",
+    rationale: "Posting partially landed; remainder outstanding",
+    nextSteps: [
+      "Identify lines that did not post",
+      "Submit missing lines to GL",
+      "Reconcile after partial posting clears"
+    ],
+    debitAccount: accountMap.expense,
+    creditAccount: accountMap.accrued
+  }),
+  WRONG_VENDOR_MAPPING: makeBookedTemplate({
+    category: "WRONG_VENDOR_MAPPING",
+    id: "rec-wrong-vendor",
+    title: "Reassign to correct vendor",
+    rationale: "Posted against the wrong vendor master record",
+    nextSteps: [
+      "Identify the correct vendor master record",
+      "Reverse posting against the wrong vendor",
+      "Re-post against the correct vendor"
+    ],
+    debitAccount: accountMap.suspense,
+    creditAccount: accountMap.ap
+  }),
+  PRICE_VARIANCE: makeBookedTemplate({
+    category: "PRICE_VARIANCE",
+    id: "rec-price-variance",
+    title: "Book price variance to PPV",
+    rationale: "Invoice price differs from PO / contract price",
+    nextSteps: [
+      "Confirm invoice price against contract",
+      "Post price variance to PPV / COGS",
+      "Request vendor credit if price contradicts contract"
+    ],
+    debitAccount: accountMap.ppv,
+    creditAccount: accountMap.ap
+  }),
+  CONVERSION_ERROR: makeBookedTemplate({
+    category: "CONVERSION_ERROR",
+    id: "rec-conversion-error",
+    title: "Adjust for conversion error",
+    rationale: "Conversion factor misapplied",
+    nextSteps: [
+      "Confirm conversion factor used at posting",
+      "Reverse mis-converted posting",
+      "Re-post with the correct conversion"
+    ],
+    debitAccount: accountMap.fx,
+    creditAccount: accountMap.ap
+  }),
+  MISSING_ACCRUAL: makeBookedTemplate({
+    category: "MISSING_ACCRUAL",
+    id: "rec-missing-accrual",
+    title: "Book missing accrual",
+    rationale: "Accrual not recorded for known liability",
+    nextSteps: [
+      "Confirm service period",
+      "Book accrual entry",
+      "Schedule reversal next period"
+    ],
+    debitAccount: accountMap.expense,
+    creditAccount: accountMap.accrued
+  }),
+  MISCODED_ACCOUNT: makeBookedTemplate({
+    category: "MISCODED_ACCOUNT",
+    id: "rec-reclass",
+    title: "Reclass account coding",
+    rationale: "Posting hit the wrong account code",
+    nextSteps: [
+      "Verify the correct account",
+      "Reclass entry to the correct account",
+      "Update vendor or product mapping"
+    ],
+    debitAccount: accountMap.correctExpense,
+    creditAccount: accountMap.misclassifiedExpense
+  }),
+  FX_REVALUATION: makeBookedTemplate({
+    category: "FX_REVALUATION",
+    id: "rec-fx",
+    title: "Record FX revaluation",
+    rationale: "FX movement detected against booked amount",
+    nextSteps: [
+      "Confirm FX rate source",
+      "Book revaluation entry",
+      "Update FX policy if needed"
+    ],
+    debitAccount: accountMap.fx,
+    creditAccount: accountMap.intercompany
+  }),
   VENDOR_RATE_ERROR: (_input) => ({
     id: "rec-rate",
     title: "Validate vendor rate",
-    nextSteps: ["Check contract rates", "Request vendor credit", "Update rate master"],
+    nextSteps: [
+      "Check contract rates",
+      "Request vendor credit if applicable",
+      "Update rate master"
+    ],
     confidence: confidenceForCategory("VENDOR_RATE_ERROR"),
     rationale: "Rate variance detected",
     source: "rules"
   }),
-  FX_REVALUATION: (input) => {
-    const amount = input.transaction?.variance ?? 0;
-    const memo = "Record FX revaluation";
-    return {
-      id: "rec-fx",
-      title: "Record FX revaluation",
-      nextSteps: ["Confirm FX rate source", "Book revaluation entry", "Update FX policy"],
-      bookingEntry: buildEntry({
-        debitAccount: accountMap.fx,
-        creditAccount: accountMap.intercompany,
-        amount,
-        memo,
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
-      }),
-      confidence: confidenceForCategory("FX_REVALUATION"),
-      rationale: "FX movement detected",
-      source: "rules"
-    };
-  },
   OTHER: (_input) => ({
     id: "rec-other",
     title: "Review variance details",
-    nextSteps: ["Review supporting evidence", "Confirm policy threshold", "Decide next action"],
+    nextSteps: [
+      "Review supporting evidence",
+      "Confirm policy threshold",
+      "Decide next action"
+    ],
     confidence: confidenceForCategory("OTHER"),
     rationale: "Needs analyst review",
     source: "rules"
@@ -352,3 +527,8 @@ export const getEscalationRecommendation = (caseId: string) => {
     return undefined;
   }
 };
+
+export const ENTRY_LESS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
+  "VENDOR_RATE_ERROR",
+  "OTHER"
+]);

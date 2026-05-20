@@ -19,11 +19,15 @@ const bandLabels: Record<ConfidenceBand, string> = {
 };
 
 export const ConfidencePill = memo(({ band, score }: ConfidencePillProps) => {
+  const label = bandLabels[band];
+  const pct = Math.round(score * 100);
   return (
     <span
+      title={`${label} confidence`}
+      aria-label={`${label} confidence (${pct}%)`}
       className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${bandStyles[band]}`}
     >
-      {bandLabels[band]} ({Math.round(score * 100)}%)
+      {pct}%
     </span>
   );
 });

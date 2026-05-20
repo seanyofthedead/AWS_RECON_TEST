@@ -21,6 +21,7 @@ import {
   formatBookingEntry,
   markRecommendationProposed
 } from "../utils/recommendations";
+import { formatCurrency } from "../utils/formatCurrency";
 
 export const CasePage = () => {
   const { caseId = "" } = useParams();
@@ -292,7 +293,7 @@ export const CasePage = () => {
             <div className="flex items-center justify-between">
               <dt>Amount</dt>
               <dd className="font-medium text-slate-900">
-                ${transaction?.amount.toFixed(2) ?? "--"}
+                {transaction ? formatCurrency(transaction.amount) : "$--"}
               </dd>
             </div>
             <div className="flex items-center justify-between">
@@ -304,7 +305,7 @@ export const CasePage = () => {
                 />
               </dt>
               <dd className="font-medium text-slate-900">
-                ${transaction?.variance.toFixed(2) ?? "--"}
+                {transaction ? formatCurrency(transaction.variance) : "$--"}
               </dd>
             </div>
             <div className="flex items-center justify-between">

@@ -16,6 +16,7 @@ import { useRoutePerf } from "../hooks/useRoutePerf";
 import { getPrimaryRecommendation } from "../utils/recommendations";
 import { useInboxFiltersStore } from "../store/useInboxFiltersStore";
 import { BatchImportWorkflow } from "../components/BatchImportWorkflow";
+import { formatCurrency } from "../utils/formatCurrency";
 
 const statusOptions = [
   { value: "all", label: "All statuses" },
@@ -34,9 +35,6 @@ const varianceBuckets = [
 const BATCH_COUNTER_KEY = "recon_batch_counter_v1";
 
 const formatNumber = (value: number) => value.toLocaleString();
-
-const formatCurrency = (value: number) =>
-  `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const ExecutiveSummaryPage = () => {
   useRoutePerf("Executive Summary");
