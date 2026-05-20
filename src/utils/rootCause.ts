@@ -60,6 +60,11 @@ const cleanReason = (raw?: string) => {
     return "";
   }
   const normalized = trimmed.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  // Short-circuit when the canonical label is already present, so tokens like
+  // "PO", "UoM", or "of" survive the title-caser.
+  if (CANONICAL_ROOT_CAUSE_LABEL_SET.has(normalized)) {
+    return normalized;
+  }
   return toTitleCase(normalized);
 };
 

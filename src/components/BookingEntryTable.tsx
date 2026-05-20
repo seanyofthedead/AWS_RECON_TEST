@@ -1,4 +1,5 @@
 import { BookingEntry } from "../types/recommendation";
+import { formatCurrency } from "../utils/formatCurrency";
 
 type BookingEntryTableProps = {
   entry: BookingEntry;
@@ -25,7 +26,7 @@ export const BookingEntryTable = ({ entry }: BookingEntryTableProps) => {
               <tr key={`${line.account}-${line.direction}-${index}`}>
                 <td className="py-2 pr-4 font-semibold text-slate-900">{line.direction}</td>
                 <td className="py-2 pr-4">{line.account}</td>
-                <td className="py-2">{line.amount.toFixed(2)}</td>
+                <td className="py-2">{formatCurrency(line.amount)}</td>
               </tr>
             ))}
           </tbody>

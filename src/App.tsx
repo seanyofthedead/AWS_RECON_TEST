@@ -64,7 +64,12 @@ export const App = () => {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-lg font-semibold">Agentic Reconciliation</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">Agentic Reconciliation</h1>
+              <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                USCG CIP · Demo
+              </span>
+            </div>
             <p className="text-sm text-slate-600">
               Decision workspace for reconciliation cases.
             </p>

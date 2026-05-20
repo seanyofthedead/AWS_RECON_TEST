@@ -7,6 +7,7 @@ import {
   ConfidenceBand,
   ConflictFlag,
   EvidenceObject,
+  MatchEvidence,
   RunLogEntry,
   StructuredRow
 } from "../types/case";
@@ -21,6 +22,13 @@ import { ReviewerPacket } from "../types/queue";
 import { measureDev, measureDevAsync } from "../utils/perf";
 import { getRootCauseLabel } from "../utils/rootCause";
 import { resolveEvidenceLinks } from "../utils/evidenceResolver";
+import {
+  caseIdForIndex,
+  caseIndexFromCaseId,
+  realisticTxId,
+  vendorDisplayName
+} from "../utils/demoIdentities";
+import { formatCurrency } from "../utils/formatCurrency";
 
 interface CanonicalVarianceRow {
   transactionid?: string;
@@ -178,14 +186,23 @@ const mapTransactionRow = (
   const canonicalMatch = canonicalByTxId.get(normalizedTxId);
   const postingDate =
     row.postingDate ?? row.PostingDate ?? row.Postingdate ?? new Date().toISOString();
-  const vendor = row.vendor ?? row.Vendor ?? "Unknown Vendor";
+  const rawVendor = row.vendor ?? row.Vendor ?? "Unknown Vendor";
+  const vendor = vendorDisplayName(rawVendor);
   const amount = toNumber(row.amount ?? row.Amount);
   const variance = toNumber(row.variance ?? row.Variance);
   const confidenceScore = toNumber(
     row.confidenceScore ?? row.ConfidenceScore ?? row.Confidence,
     0.72
   );
-  const caseId = row.caseId ?? row.CaseId ?? `CASE-${normalizedTxId}`;
+  const caseIdOverride = row.caseId ?? row.CaseId;
+  const caseId =
+    caseIdOverride && caseIdOverride.startsWith("CASE-") && !caseIdOverride.includes("TX-")
+      ? caseIdOverride
+      : caseIndex != null
+        ? caseIdForIndex(caseIndex)
+        : `CASE-${normalizedTxId}`;
+  const displayTransactionId =
+    caseIndex != null ? realisticTxId(caseIndex) : transactionId;
   const matchingDecisions = decisions.filter((decision) => decision.caseId === caseId);
   const matchingDecision =
     matchingDecisions.length > 0
@@ -208,21 +225,39 @@ const mapTransactionRow = (
       if (escalatedFlag) {
         status = CaseStatus.Escalated;
       } else if (reviewedFlag) {
-        status = CaseStatus.Reviewed;
+        // Deterministically promote a subset of Reviewed rows to Resolved so
+        // the Resolved page is populated on a fresh load. The hash is stable
+        // across reloads, so the same cases land in Resolved every time.
+        const promoteToResolved = hashString(`${caseId}-resolved`) % 100 < 37;
+        status = promoteToResolved ? CaseStatus.Resolved : CaseStatus.Reviewed;
       }
     }
   }
 
   const reviewed = overrides.reviewed ?? status !== CaseStatus.ScreenedUnresolved;
   const lastUpdated = overrides.lastUpdated ?? matchingDecision?.timestamp ?? postingDate;
-  const resolvedAt =
+  let resolvedAt =
     overrides.resolvedAt ??
     (matchingDecision?.decisionType === "CLOSE_AS_RESOLVED"
       ? matchingDecision.timestamp
       : undefined);
+  if (!resolvedAt && status === CaseStatus.Resolved) {
+    const postingMs = Date.parse(postingDate);
+    if (Number.isFinite(postingMs)) {
+      const offset = 1 + (hashString(`${caseId}-resolved-offset`) % 5);
+      const resolvedDate = addBusinessDays(new Date(postingMs), offset);
+      resolvedDate.setUTCHours(
+        10 + (hashString(`${caseId}-resolved-hour`) % 7),
+        0,
+        0,
+        0
+      );
+      resolvedAt = resolvedDate.toISOString();
+    }
+  }
 
   const transaction: TransactionRow = {
-    transactionId,
+    transactionId: displayTransactionId,
     postingDate,
     vendor,
     amount,
@@ -262,7 +297,7 @@ const logCaseIndexSummary = (transactions: TransactionRow[], label: string) => {
     return;
   }
   const indices = transactions
-    .map((row) => getCaseIndex(row.transactionId))
+    .map((row) => caseIndexFromCaseId(row.caseId))
     .filter((value): value is number => Number.isFinite(value));
   if (indices.length === 0) {
     console.debug(`[demo] ${label}: no case indices detected.`);
@@ -276,6 +311,168 @@ const logCaseIndexSummary = (transactions: TransactionRow[], label: string) => {
 const seededOffsetDays = (seed: number, range: number) => {
   const rand = mulberry32(seed);
   return Math.floor(rand() * range);
+};
+
+const addBusinessDays = (date: Date, days: number): Date => {
+  const result = new Date(date.getTime());
+  let added = 0;
+  while (added < days) {
+    result.setUTCDate(result.getUTCDate() + 1);
+    const day = result.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      added += 1;
+    }
+  }
+  return result;
+};
+
+const REASON_SUMMARY_BY_ROOT_CAUSE: Record<string, string> = {
+  "Timing Difference": "Posting straddles period close; needs accrual confirmation.",
+  "Accrual Reversal": "Prior accrual reversal missing; period balance off.",
+  "Missing Receipt": "Receipt not posted in receiving system.",
+  "Manual Entry Error": "Keyed amount disagrees with source document.",
+  "Stale Master Data": "Vendor master record appears out of date.",
+  "Reference Data Misalignment": "Mapping codes inconsistent across systems.",
+  "Wrong PO Reference": "Invoice PO does not match recorded PO.",
+  "Batch Interface Failure": "Inbound batch interface did not post to GL.",
+  "Duplicate Transaction": "Same invoice posted more than once.",
+  "Unit of Measure Mismatch": "Quantity unit differs between PO and invoice.",
+  "Partial Posting": "Posting only partially landed in GL.",
+  "Wrong Vendor Mapping": "Posted against the wrong vendor master record.",
+  "Price Variance": "Invoice price differs from PO / contract price.",
+  "Conversion Error": "Conversion factor applied incorrectly.",
+  Other: "Variance exceeds policy threshold; needs analyst review.",
+  "Unknown / Needs Review": "Insufficient evidence for automated resolution."
+};
+
+const reasonSummaryFor = (label: string): string =>
+  REASON_SUMMARY_BY_ROOT_CAUSE[label] ?? "Variance exceeds policy threshold.";
+
+type PoolTemplate = string | ((ctx: { vendor: string; invoiceId: string; poNumber: string }) => string);
+
+const ATTEMPTED_STEPS_POOL: PoolTemplate[] = [
+  ({ vendor }) => `Checked ${vendor} master data and policy thresholds`,
+  ({ invoiceId }) => `Matched invoice ${invoiceId} against PO on file`,
+  "Reviewed historical variance for the past four quarters",
+  ({ vendor }) => `Pulled ${vendor} contract addendum from vault`,
+  "Compared canonical and ERP postings line by line",
+  "Re-ran three-way match with realistic IDs",
+  ({ poNumber }) => `Replayed PO ${poNumber} receiving flow`,
+  "Reviewed prior-period accrual reversal log",
+  "Checked vendor remittance history for duplicate payments"
+];
+
+const EVIDENCE_FOUND_POOL: PoolTemplate[] = [
+  ({ invoiceId }) => `Invoice ${invoiceId} metadata validated`,
+  ({ vendor }) => `${vendor} contract addendum on file`,
+  ({ poNumber }) => `PO ${poNumber} approval chain captured`,
+  "Receiving log entry located",
+  "Prior-period accrual journal entry identified",
+  "Vendor remittance email confirmed",
+  "GL posting extract attached to packet",
+  "Three-way match notes appended"
+];
+
+const MISSING_CHECKLIST_POOL: PoolTemplate[] = [
+  "Approval chain confirmation from approver of record",
+  "Updated receipt attachment from receiving",
+  ({ vendor }) => `Latest ${vendor} master data refresh`,
+  ({ poNumber }) => `Signed PO ${poNumber} change order`,
+  "Vendor credit memo for the price gap",
+  "Reference data alignment confirmation",
+  "Batch interface re-run confirmation",
+  "Period-close sign-off from finance lead"
+];
+
+const SUGGESTED_ACTIONS_POOL: PoolTemplate[] = [
+  ({ vendor }) => `Request supporting documentation from ${vendor}`,
+  "Validate posting window with AP team",
+  "Escalate to finance lead if unresolved within 24h",
+  ({ invoiceId }) => `Re-run three-way match on invoice ${invoiceId}`,
+  ({ poNumber }) => `Confirm PO ${poNumber} with procurement`,
+  "Open ticket with master data team for vendor refresh",
+  "Coordinate with receiving to post the missing receipt",
+  "Reverse and re-post against the correct vendor master"
+];
+
+const pickFromPool = (
+  pool: PoolTemplate[],
+  seed: number,
+  count: number,
+  ctx: { vendor: string; invoiceId: string; poNumber: string }
+): string[] => {
+  const indices = Array.from({ length: pool.length }, (_, i) => i);
+  const rand = mulberry32(seed);
+  // Fisher–Yates shuffle keyed on seed.
+  for (let i = indices.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+  const selected = indices.slice(0, Math.min(count, pool.length)).map((i) => pool[i]);
+  return selected.map((item) => (typeof item === "function" ? item(ctx) : item));
+};
+
+const buildMatchEvidence = (
+  transaction: TransactionRow,
+  canonical: CanonicalVarianceRow,
+  rootCauseLabel: string
+): MatchEvidence => {
+  const normalizedTxId = normalizeTxId(transaction.transactionId);
+  const seed = hashString(`${normalizedTxId}-match`);
+  const docNumber = canonical.doc_number || `DOC-${(seed % 900000) + 100000}`;
+  const poNumber = canonical.po_number || `PO-${(seed % 90000) + 10000}`;
+  const invoiceId = canonical.invoice_id || `INV-${(seed % 9000000) + 1000000}`;
+  const receiptIdBase = `RCPT-${(seed % 900000) + 100000}`;
+  const glPostingId =
+    canonical.gl_posting_id || `GL-${(seed % 9000000) + 1000000}`;
+
+  let invoicePoNumber: string | undefined = poNumber;
+  let receiptId: string | undefined = receiptIdBase;
+  let receiptNumber: string | undefined = receiptIdBase;
+  let receiptPoNumber: string | undefined = poNumber;
+  let glInvoiceId: string | undefined = invoiceId;
+
+  switch (rootCauseLabel) {
+    case "Wrong PO Reference": {
+      const altSeed = hashString(`${normalizedTxId}-alt-po`);
+      invoicePoNumber = `PO-${(altSeed % 90000) + 10000}`;
+      break;
+    }
+    case "Missing Receipt": {
+      receiptId = undefined;
+      receiptNumber = undefined;
+      receiptPoNumber = undefined;
+      break;
+    }
+    case "Wrong Vendor Mapping": {
+      const altSeed = hashString(`${normalizedTxId}-alt-inv`);
+      glInvoiceId = `INV-${(altSeed % 9000000) + 1000000}`;
+      break;
+    }
+    case "Batch Interface Failure": {
+      glInvoiceId = undefined;
+      break;
+    }
+    default:
+      break;
+  }
+
+  return {
+    transactionId: normalizedTxId,
+    invoiceId,
+    poNumber,
+    invoicePoNumber,
+    receiptId,
+    receiptNumber,
+    receiptPoNumber,
+    glDocumentId: docNumber,
+    glPostingId,
+    glInvoiceId,
+    vendorId: canonical.vendor_id,
+    poAmount: canonical.po_amount,
+    receiptAmount: canonical.receipt_amount,
+    glAmount: canonical.gl_amount
+  };
 };
 
 const dedupeTransactions = (rows: TransactionRow[]) => {
@@ -392,6 +589,10 @@ export class MockDataProvider implements DataProvider {
     ]);
     const canonicalNormalized = canonicalRaw.map((row) => {
       const normalized = normalizeRecord(row);
+      const raw = row as Record<string, string>;
+      // Prefer the realistic capital-case canonical columns (Doc_Number,
+      // PO_Number, Invoice_ID) over the placeholder lowercase variants
+      // (po_number, invoice_id) that share the same normalized key.
       return {
         transactionid: normalized.transactionid,
         vendor: normalized.vendor,
@@ -399,9 +600,9 @@ export class MockDataProvider implements DataProvider {
         ai_reason: normalized.ai_reason,
         commentary: normalized.commentary,
         evidence_doc_ids: normalized.evidence_doc_ids,
-        doc_number: normalized.doc_number,
-        po_number: normalized.po_number,
-        invoice_id: normalized.invoice_id,
+        doc_number: raw.Doc_Number ?? normalized.doc_number,
+        po_number: raw.PO_Number ?? normalized.po_number,
+        invoice_id: raw.Invoice_ID ?? normalized.invoice_id,
         next_steps: normalized.next_steps,
         invoice_po_number: normalized.invoice_po_number,
         receipt_id: normalized.receipt_id,
@@ -443,7 +644,7 @@ export class MockDataProvider implements DataProvider {
     logCaseIndexSummary(this.transactions, "baseline");
     if (import.meta.env.DEV) {
       const indices = this.transactions
-        .map((row) => getCaseIndex(row.transactionId))
+        .map((row) => caseIndexFromCaseId(row.caseId))
         .filter((value): value is number => Number.isFinite(value));
       if (indices.length > 0) {
         const min = Math.min(...indices);
@@ -482,11 +683,12 @@ export class MockDataProvider implements DataProvider {
       logCaseIndexSummary(batchTransactions, "rehydrated import");
     }
     if (import.meta.env.DEV) {
-      const sampleIds = ["TX-1000004", "TX-1000003", "TX-1000013", "TX-1000002"];
-      const sample = sampleIds
-        .map((id) => this.transactions.find((item) => item.transactionId === id))
+      const sampleCaseIds = ["CASE-00004", "CASE-00003", "CASE-00013", "CASE-00002"];
+      const sample = sampleCaseIds
+        .map((id) => this.transactions.find((item) => item.caseId === id))
         .filter(Boolean)
         .map((item) => ({
+          caseId: item?.caseId,
           transactionId: item?.transactionId,
           canonicalAiReason: item?.canonicalAiReason,
           canonicalVarianceCategory: item?.canonicalVarianceCategory,
@@ -506,21 +708,32 @@ export class MockDataProvider implements DataProvider {
     }
     const seed = hashString(transaction.caseId);
     const rand = mulberry32(seed);
-    const normalizedTxId = normalizeTxId(transaction.transactionId);
-    const canonicalMatch = this.canonicalByTxId.get(normalizedTxId);
+    const caseIndex = caseIndexFromCaseId(transaction.caseId);
+    const canonicalLookupKey =
+      caseIndex != null ? `TX-${1000000 + caseIndex}` : normalizeTxId(transaction.transactionId);
+    const canonicalMatch = this.canonicalByTxId.get(canonicalLookupKey);
+    const rootCauseLabel = getRootCauseLabel(transaction);
+    const matchEvidence = canonicalMatch
+      ? buildMatchEvidence(transaction, canonicalMatch, rootCauseLabel)
+      : undefined;
     const postingDate = new Date(transaction.postingDate);
     const stableDate = Number.isNaN(postingDate.getTime())
       ? new Date(2025, 0, 1)
       : postingDate;
     const createdAtBase = stableDate.getTime();
-    const createdAtOffsets = [
-      seededOffsetDays(seed + 1, 7),
-      seededOffsetDays(seed + 2, 6),
-      seededOffsetDays(seed + 3, 5),
-      seededOffsetDays(seed + 4, 4)
+    const hourSeed = mulberry32(seed + 7);
+    // Spread evidence creation across the work day so four artifacts don't all
+    // land at midnight UTC. Each offset combines a "days before posting" value
+    // with a deterministic time-of-day stamp.
+    const evidenceTimeOffsets: Array<{ days: number; hour: number; minute: number }> = [
+      { days: seededOffsetDays(seed + 1, 7), hour: 9, minute: Math.floor(hourSeed() * 60) },
+      { days: seededOffsetDays(seed + 2, 6), hour: 11, minute: Math.floor(hourSeed() * 60) },
+      { days: seededOffsetDays(seed + 3, 5), hour: 14, minute: Math.floor(hourSeed() * 60) },
+      { days: seededOffsetDays(seed + 4, 4), hour: 16, minute: Math.floor(hourSeed() * 60) }
     ];
-    const createdAtValues = createdAtOffsets.map((offset) => {
-      const date = new Date(createdAtBase - offset * 24 * 60 * 60 * 1000);
+    const createdAtValues = evidenceTimeOffsets.map((offset) => {
+      const date = new Date(createdAtBase - offset.days * 24 * 60 * 60 * 1000);
+      date.setUTCHours(offset.hour, offset.minute, 0, 0);
       return date.toISOString();
     });
     const evidenceIds = [
@@ -529,10 +742,9 @@ export class MockDataProvider implements DataProvider {
       `${transaction.caseId}-evidence-receipt`,
       `${transaction.caseId}-evidence-gl`
     ];
-    const caseIndex = getCaseIndex(transaction.transactionId);
     // Legacy evidence paths and evidence_index.json are deprecated.
     // Evidence links are now derived deterministically by case index.
-    const evidenceLinks = caseIndex ? resolveEvidenceLinks(caseIndex) : {};
+    const evidenceLinks = caseIndex != null ? resolveEvidenceLinks(caseIndex) : {};
     const invoiceUrl = evidenceLinks.invoice;
     const poUrl = evidenceLinks.po;
     const receiptUrl = evidenceLinks.receipt;
@@ -552,8 +764,8 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "Invoice",
         description: "Supplier invoice document.",
-        snippet: canonicalMatch?.invoice_id
-          ? `Invoice ID ${canonicalMatch.invoice_id}`
+        snippet: matchEvidence?.invoiceId
+          ? `Invoice ID ${matchEvidence.invoiceId}`
           : "Invoice ID on file.",
         source: "AP Extract",
         weight: Number((0.5 + rand() * 0.4).toFixed(2)),
@@ -565,8 +777,8 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "Purchase Order",
         description: "Purchase order document.",
-        snippet: canonicalMatch?.po_number
-          ? `PO ${canonicalMatch.po_number}`
+        snippet: matchEvidence?.poNumber
+          ? `PO ${matchEvidence.poNumber}`
           : "Purchase order on file.",
         source: "Procurement",
         weight: Number((0.55 + rand() * 0.35).toFixed(2)),
@@ -578,9 +790,9 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "Receipt",
         description: "Goods receipt document.",
-        snippet: canonicalMatch?.receipt_id
-          ? `Receipt ${canonicalMatch.receipt_id}`
-          : "Receipt record on file.",
+        snippet: matchEvidence?.receiptId
+          ? `Receipt ${matchEvidence.receiptId}`
+          : "No receipt record on file.",
         source: "Receiving",
         weight: Number((0.5 + rand() * 0.4).toFixed(2)),
         createdAt: createdAtValues[2],
@@ -591,8 +803,8 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "GL Posting",
         description: "General ledger posting extract.",
-        snippet: canonicalMatch?.gl_document_id
-          ? `GL ${canonicalMatch.gl_document_id}`
+        snippet: matchEvidence?.glDocumentId
+          ? `GL ${matchEvidence.glDocumentId}`
           : "GL posting on file.",
         source: "GL Extract",
         weight: Number((0.5 + rand() * 0.4).toFixed(2)),
@@ -629,11 +841,16 @@ export class MockDataProvider implements DataProvider {
         id: `${transaction.caseId}-conflict-1`,
         description: "Variance exceeds typical category mean.",
         severity: transaction.variance > 800 ? "high" : "medium",
-        checklist: [
-          "Re-check invoice line items",
-          "Validate vendor contract clause",
-          "Confirm approval chain"
-        ]
+        checklist: pickFromPool(
+          MISSING_CHECKLIST_POOL,
+          hashString(`${transaction.caseId}-conflict-1`),
+          3,
+          {
+            vendor: transaction.vendor,
+            invoiceId: matchEvidence?.invoiceId ?? "",
+            poNumber: matchEvidence?.poNumber ?? ""
+          }
+        )
       });
     }
     if (rand() > 0.85) {
@@ -641,7 +858,16 @@ export class MockDataProvider implements DataProvider {
         id: `${transaction.caseId}-conflict-2`,
         description: "Missing supporting attachment for invoice.",
         severity: "low",
-        checklist: ["Request missing attachment", "Confirm invoice metadata"]
+        checklist: pickFromPool(
+          EVIDENCE_FOUND_POOL,
+          hashString(`${transaction.caseId}-conflict-2`),
+          2,
+          {
+            vendor: transaction.vendor,
+            invoiceId: matchEvidence?.invoiceId ?? "",
+            poNumber: matchEvidence?.poNumber ?? ""
+          }
+        )
       });
     }
     const postingExpected = "Within policy window";
@@ -658,8 +884,8 @@ export class MockDataProvider implements DataProvider {
       {
         id: `${transaction.caseId}-structured-2`,
         field: "Amount match",
-        expected: `$${transaction.amount.toFixed(2)}`,
-        actual: `$${(transaction.amount + transaction.variance).toFixed(2)}`,
+        expected: formatCurrency(transaction.amount),
+        actual: formatCurrency(transaction.amount + transaction.variance),
         status: transaction.variance > 300 ? "mismatch" : "warning"
       },
       {
@@ -670,23 +896,24 @@ export class MockDataProvider implements DataProvider {
         status: postingActual === postingExpected ? "match" : "mismatch"
       }
     ];
-    const runLog: RunLogEntry[] = [
-      {
-        id: `${transaction.caseId}-log-1`,
-        timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-        message: "Model evaluated vendor risk score."
-      },
-      {
-        id: `${transaction.caseId}-log-2`,
-        timestamp: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
-        message: "Variance trend compared to canonical benchmarks."
-      },
-      {
-        id: `${transaction.caseId}-log-3`,
-        timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
-        message: "Evidence pack assembled for review."
-      }
+    const runLogMessages = [
+      "Screened transaction against canonical benchmarks.",
+      "Planned evidence pull across Procurement, Receiving, and GL.",
+      "Retrieved invoice, PO, and GL artifacts for review.",
+      `Verified three-way match (${rootCauseLabel}).`,
+      "Reported findings; assembled posting-ready recommendation."
     ];
+    const runLog: RunLogEntry[] = runLogMessages.map((message, index) => {
+      const stepDate = new Date(createdAtBase);
+      const hour = 9 + index;
+      const minute = Math.floor(hourSeed() * 60);
+      stepDate.setUTCHours(hour, minute, 0, 0);
+      return {
+        id: `${transaction.caseId}-log-${index + 1}`,
+        timestamp: stepDate.toISOString(),
+        message
+      };
+    });
     const caseFile: CaseFile = {
       caseId: transaction.caseId,
       transactionId: transaction.transactionId,
@@ -697,24 +924,7 @@ export class MockDataProvider implements DataProvider {
       conflicts,
       runLog,
       structuredRows,
-      matchEvidence: canonicalMatch
-        ? {
-            transactionId: normalizedTxId,
-            invoiceId: canonicalMatch.invoice_id,
-            poNumber: canonicalMatch.po_number,
-            invoicePoNumber: canonicalMatch.invoice_po_number,
-            receiptId: canonicalMatch.receipt_id,
-            receiptNumber: canonicalMatch.receipt_number,
-            receiptPoNumber: canonicalMatch.receipt_po_number,
-            glDocumentId: canonicalMatch.gl_document_id,
-            glPostingId: canonicalMatch.gl_posting_id,
-            glInvoiceId: canonicalMatch.gl_invoice_id,
-            vendorId: canonicalMatch.vendor_id,
-            poAmount: canonicalMatch.po_amount,
-            receiptAmount: canonicalMatch.receipt_amount,
-            glAmount: canonicalMatch.gl_amount
-          }
-        : undefined,
+      matchEvidence,
       resolvedAt: transaction.status === CaseStatus.Resolved ? transaction.lastUpdated : undefined
     };
     this.cases.set(transaction.caseId, caseFile);
@@ -842,7 +1052,7 @@ export class MockDataProvider implements DataProvider {
           );
         }
         const indices = newTransactions
-          .map((row) => getCaseIndex(row.transactionId))
+          .map((row) => caseIndexFromCaseId(row.caseId))
           .filter((value): value is number => Number.isFinite(value));
         if (indices.length > 0) {
           const min = Math.min(...indices);
@@ -895,32 +1105,56 @@ export class MockDataProvider implements DataProvider {
     const seed = hashString(`${caseId}-packet`);
     const rand = mulberry32(seed);
     const priority = rand() > 0.75 ? "high" : rand() > 0.4 ? "medium" : "low";
-    const createdAt = new Date(Date.now() - rand() * 1000 * 60 * 60 * 24 * 2).toISOString();
+    const rootCauseLabel = getRootCauseLabel(transaction);
+    const caseIndex = caseIndexFromCaseId(transaction.caseId);
+    const lookupKey =
+      caseIndex != null ? `TX-${1000000 + caseIndex}` : normalizeTxId(transaction.transactionId);
+    const canonical = this.canonicalByTxId.get(lookupKey);
+    const invoiceId =
+      canonical?.invoice_id ??
+      `INV-${(hashString(`${caseId}-inv`) % 9000000) + 1000000}`;
+    const poNumber =
+      canonical?.po_number ?? `PO-${(hashString(`${caseId}-po`) % 90000) + 10000}`;
+    const postingDate = new Date(transaction.postingDate);
+    const stable = Number.isNaN(postingDate.getTime())
+      ? new Date(2025, 0, 1)
+      : postingDate;
+    const businessDayOffset = 1 + Math.floor(rand() * 5);
+    const createdDate = addBusinessDays(stable, businessDayOffset);
+    createdDate.setUTCHours(9 + Math.floor(rand() * 7), Math.floor(rand() * 60), 0, 0);
+    const submittedDate = new Date(createdDate.getTime() - 2 * 60 * 60 * 1000);
     return {
       caseId,
-      summary: `Variance of ${transaction.variance.toFixed(
-        2
-      )} flagged for ${transaction.vendor}.`,
-      reasonSummary: rand() > 0.6 ? "Variance exceeds policy threshold." : "Attachment missing.",
+      summary: `Variance of ${formatCurrency(transaction.variance)} flagged for ${transaction.vendor}.`,
+      reasonSummary: reasonSummaryFor(rootCauseLabel),
       priority,
       requestedBy: "Reconciliation Agent",
-      submittedAt: new Date(Date.now() - rand() * 1000 * 60 * 60 * 6).toISOString(),
-      createdAt,
-      attemptedSteps: [
-        "Checked vendor policy thresholds",
-        "Matched invoice against PO",
-        "Reviewed historical variance"
-      ],
-      evidenceFound: [
-        "Invoice metadata validated",
-        "Vendor contract addendum available"
-      ],
-      missingChecklist: ["Approval chain confirmation", "Updated receipt attachment"],
-      suggestedNextActions: [
-        "Request supporting documentation",
-        "Validate posting window with AP",
-        "Escalate to finance lead if unresolved"
-      ]
+      submittedAt: submittedDate.toISOString(),
+      createdAt: createdDate.toISOString(),
+      attemptedSteps: pickFromPool(
+        ATTEMPTED_STEPS_POOL,
+        hashString(`${caseId}-attempted`),
+        3,
+        { vendor: transaction.vendor, invoiceId, poNumber }
+      ),
+      evidenceFound: pickFromPool(
+        EVIDENCE_FOUND_POOL,
+        hashString(`${caseId}-evidence`),
+        3,
+        { vendor: transaction.vendor, invoiceId, poNumber }
+      ),
+      missingChecklist: pickFromPool(
+        MISSING_CHECKLIST_POOL,
+        hashString(`${caseId}-missing`),
+        2,
+        { vendor: transaction.vendor, invoiceId, poNumber }
+      ),
+      suggestedNextActions: pickFromPool(
+        SUGGESTED_ACTIONS_POOL,
+        hashString(`${caseId}-actions`),
+        3,
+        { vendor: transaction.vendor, invoiceId, poNumber }
+      )
     };
   }
 }
