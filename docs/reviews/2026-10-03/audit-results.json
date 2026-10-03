@@ -1,0 +1,325 @@
+{
+  "baselineCount": 88,
+  "statuses": {
+    "Escalated": 20,
+    "Reviewed": 14,
+    "SCREENED_UNRESOLVED": 41,
+    "RESOLVED": 13
+  },
+  "csvCounts": {
+    "ui": 88,
+    "canonical": 100,
+    "batch": 12
+  },
+  "csvParseErrors": {
+    "ui": [],
+    "canonical": [],
+    "batch": []
+  },
+  "negativeDollarVariances": 0,
+  "zeroDollarVariances": 0,
+  "matchStatuses": {
+    "fail": 6,
+    "pass": 71,
+    "inconclusive": 11
+  },
+  "missingEvidenceLinks": [],
+  "passesWithNonzeroVariance": 71,
+  "allCanonicalDocumentAmountsEqual": 100,
+  "canonicalQuantityVsDollarSignDisagreement": 37,
+  "falsePass": {
+    "status": "pass",
+    "invoiceNote": "Invoice I references PO P.",
+    "poNote": "PO P present in canonical data.",
+    "receiptNote": "Receipt record tied to PO P.",
+    "glNote": "GL posting record references Invoice I."
+  },
+  "invalidVerify": {
+    "ok": true
+  },
+  "closeWithoutEvidence": {
+    "caseId": "CASE-00015",
+    "status": "RESOLVED",
+    "variance": 214.64
+  },
+  "reEscalated": {
+    "status": "Escalated",
+    "resolvedAt": "2026-10-03T15:37:04.948Z"
+  },
+  "importedCloseAfterReload": {
+    "caseId": "CASE-00001",
+    "beforeReload": "RESOLVED",
+    "afterReload": "RESOLVED"
+  },
+  "importedEscalationAfterReload": {
+    "caseId": "CASE-00002",
+    "beforeReload": "Escalated",
+    "afterReload": "SCREENED_UNRESOLVED"
+  },
+  "negativeDuplicate": {
+    "id": "rec-duplicate",
+    "title": "Reverse duplicate charge",
+    "nextSteps": [
+      "Confirm both postings reference the same invoice",
+      "Reverse duplicate entry",
+      "Notify vendor if remittance already sent"
+    ],
+    "bookingEntry": {
+      "memo": "Reverse duplicate charge · Northrop Grumman · TX-9829125",
+      "effectiveDate": "2025-10-24",
+      "period": "2025-10",
+      "lines": [
+        {
+          "direction": "DEBIT",
+          "account": "Expense",
+          "amount": 100
+        },
+        {
+          "direction": "CREDIT",
+          "account": "Accounts Payable",
+          "amount": 100
+        }
+      ]
+    },
+    "confidence": "High",
+    "rationale": "Same invoice posted more than once",
+    "source": "rules"
+  },
+  "highConfidenceFailedOrInconclusive": [],
+  "initialRecommendation": {
+    "id": "rec-missing-accrual",
+    "title": "Book missing accrual",
+    "nextSteps": [
+      "Confirm service period",
+      "Book accrual entry",
+      "Schedule reversal next period"
+    ],
+    "bookingEntry": {
+      "memo": "Book missing accrual",
+      "lines": [
+        {
+          "direction": "DEBIT",
+          "account": "Expense",
+          "amount": 0
+        },
+        {
+          "direction": "CREDIT",
+          "account": "Accrued Expenses",
+          "amount": 0
+        }
+      ]
+    },
+    "confidence": "High",
+    "rationale": "Accrual not recorded for known liability",
+    "source": "rules"
+  },
+  "afterDataRecommendation": {
+    "id": "rec-missing-accrual",
+    "title": "Book missing accrual",
+    "nextSteps": [
+      "Confirm service period",
+      "Book accrual entry",
+      "Schedule reversal next period"
+    ],
+    "bookingEntry": {
+      "memo": "Book missing accrual",
+      "lines": [
+        {
+          "direction": "DEBIT",
+          "account": "Expense",
+          "amount": 0
+        },
+        {
+          "direction": "CREDIT",
+          "account": "Accrued Expenses",
+          "amount": 0
+        }
+      ]
+    },
+    "confidence": "High",
+    "rationale": "Accrual not recorded for known liability",
+    "source": "rules"
+  },
+  "case13": {
+    "caseId": "CASE-00013",
+    "transactionId": "TX-8871847",
+    "status": "Escalated",
+    "confidenceBand": "LOW",
+    "claims": [
+      {
+        "id": "CASE-00013-claim-1",
+        "statement": "Invoice and PO documents are linked for HPE Federal.",
+        "source": "Reconciliation Model",
+        "confidence": 0.78,
+        "supportedByEvidenceIds": [
+          "CASE-00013-evidence-invoice",
+          "CASE-00013-evidence-po"
+        ]
+      },
+      {
+        "id": "CASE-00013-claim-2",
+        "statement": "Receipt and GL posting documentation are available for review.",
+        "source": "Variance Analyzer",
+        "confidence": 0.85,
+        "supportedByEvidenceIds": [
+          "CASE-00013-evidence-receipt",
+          "CASE-00013-evidence-gl"
+        ]
+      },
+      {
+        "id": "CASE-00013-claim-3",
+        "statement": "Invoice, PO, receipt, and GL artifacts are assembled.",
+        "source": "Counterparty Monitor",
+        "confidence": 0.74,
+        "supportedByEvidenceIds": [
+          "CASE-00013-evidence-invoice",
+          "CASE-00013-evidence-po",
+          "CASE-00013-evidence-receipt",
+          "CASE-00013-evidence-gl"
+        ]
+      }
+    ],
+    "evidence": [
+      {
+        "id": "CASE-00013-evidence-invoice",
+        "kind": "document",
+        "title": "Invoice",
+        "description": "Supplier invoice document.",
+        "snippet": "Invoice ID INV-5408072",
+        "source": "AP Extract",
+        "weight": 0.64,
+        "createdAt": "2025-11-20T09:12:00.000Z",
+        "url": "/evidence/CASE-00013/Invoice.pdf"
+      },
+      {
+        "id": "CASE-00013-evidence-po",
+        "kind": "document",
+        "title": "Purchase Order",
+        "description": "Purchase order document.",
+        "snippet": "PO PO-42325",
+        "source": "Procurement",
+        "weight": 0.89,
+        "createdAt": "2025-11-26T11:17:00.000Z",
+        "url": "/evidence/CASE-00013/Purchase_Order.pdf"
+      },
+      {
+        "id": "CASE-00013-evidence-receipt",
+        "kind": "document",
+        "title": "Receipt",
+        "description": "Goods receipt document.",
+        "snippet": "Receipt RCPT-575843",
+        "source": "Receiving",
+        "weight": 0.85,
+        "createdAt": "2025-11-26T14:52:00.000Z",
+        "url": "/evidence/CASE-00013/Receipt.pdf"
+      },
+      {
+        "id": "CASE-00013-evidence-gl",
+        "kind": "document",
+        "title": "GL Posting",
+        "description": "General ledger posting extract.",
+        "snippet": "GL DOC-246413",
+        "source": "GL Extract",
+        "weight": 0.61,
+        "createdAt": "2025-11-26T16:26:00.000Z",
+        "url": "/evidence/CASE-00013/GL_Posting.pdf"
+      }
+    ],
+    "conflicts": [
+      {
+        "id": "CASE-00013-conflict-2",
+        "description": "Missing supporting attachment for invoice.",
+        "severity": "low",
+        "checklist": [
+          "GL posting extract attached to packet",
+          "Prior-period accrual journal entry identified"
+        ]
+      }
+    ],
+    "runLog": [
+      {
+        "id": "CASE-00013-log-1",
+        "timestamp": "2025-11-26T09:31:00.000Z",
+        "message": "Screened transaction against canonical benchmarks."
+      },
+      {
+        "id": "CASE-00013-log-2",
+        "timestamp": "2025-11-26T10:48:00.000Z",
+        "message": "Planned evidence pull across Procurement, Receiving, and GL."
+      },
+      {
+        "id": "CASE-00013-log-3",
+        "timestamp": "2025-11-26T11:07:00.000Z",
+        "message": "Retrieved invoice, PO, and GL artifacts for review."
+      },
+      {
+        "id": "CASE-00013-log-4",
+        "timestamp": "2025-11-26T12:42:00.000Z",
+        "message": "Verified three-way match (Wrong PO Reference)."
+      },
+      {
+        "id": "CASE-00013-log-5",
+        "timestamp": "2025-11-26T13:46:00.000Z",
+        "message": "Reported findings; assembled posting-ready recommendation."
+      }
+    ],
+    "structuredRows": [
+      {
+        "id": "CASE-00013-structured-1",
+        "field": "Vendor match",
+        "expected": "HPE Federal",
+        "actual": "HPE Federal",
+        "status": "match"
+      },
+      {
+        "id": "CASE-00013-structured-2",
+        "field": "Amount match",
+        "expected": "$23,957.26",
+        "actual": "$24,244.96",
+        "status": "warning"
+      },
+      {
+        "id": "CASE-00013-structured-3",
+        "field": "Posting window",
+        "expected": "Within policy window",
+        "actual": "Within policy window",
+        "status": "match"
+      }
+    ],
+    "matchEvidence": {
+      "transactionId": "TX-8871847",
+      "invoiceId": "INV-5408072",
+      "poNumber": "PO-42325",
+      "invoicePoNumber": "PO-43039",
+      "receiptId": "RCPT-575843",
+      "receiptNumber": "RCPT-575843",
+      "receiptPoNumber": "PO-42325",
+      "glDocumentId": "DOC-246413",
+      "glPostingId": "GL-1475843",
+      "glInvoiceId": "INV-5408072",
+      "vendorId": "VENDOR-057",
+      "poAmount": "23957.26",
+      "receiptAmount": "23957.26",
+      "glAmount": "23957.26"
+    }
+  },
+  "missingCanonicalFields": [
+    {
+      "field": "invoice_po_number",
+      "missing": 100
+    },
+    {
+      "field": "receipt_id",
+      "missing": 0
+    },
+    {
+      "field": "receipt_po_number",
+      "missing": 0
+    },
+    {
+      "field": "gl_invoice_id",
+      "missing": 0
+    }
+  ],
+  "sourceConflicts": []
+}
