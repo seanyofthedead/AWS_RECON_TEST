@@ -31,7 +31,7 @@ Scope: mock provider only, Cognito sign-in unchanged. The work was done in a fre
 
 - Fixture match results: all 88 baseline cases now show "Reference links: PASS · Amounts: INCONCLUSIVE". The fixture's PO, receipt, and GL amounts all equal the invoice amount, so they cannot explain any variance. Earlier PASS and FAIL results came from synthesized mismatches.
 - The Inbox's one-click close is replaced by "Review to close", which opens the decision form on the case page.
-- Committed source shows the header badge `USCG CIP · Demo`. The deployed bundle shows `FEMA · DEMO`. This is further evidence that committed source does not reproduce the deployed ZIP.
+- Committed source showed the header badge `USCG CIP · Demo`, and the deployed bundle shows `FEMA · DEMO`. Both labels were carried over by mistake with the Amplify and Cognito configuration borrowed from a separate Amplify app, so the badge has been removed from source. The deployed bundle still shows it until it is rebuilt. The mismatch is further evidence that committed source does not reproduce the deployed ZIP.
 
 ## Verification
 
