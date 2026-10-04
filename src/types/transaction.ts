@@ -33,4 +33,13 @@ export interface TransactionRow {
     | "Other";
   rootCauseDetail?: string;
   resolvedAt?: string;
+  closureDisposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  // Join references carried by the source invoice row, kept separate from
+  // the display transaction ID.
+  sourceRefs?: {
+    invoiceId?: string;
+    poNumber?: string;
+    vendorId?: string;
+    invoiceAmount?: string;
+  };
 }

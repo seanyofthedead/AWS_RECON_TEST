@@ -13,7 +13,9 @@ interface EnvState {
   setSearchTerm: (value: string) => void;
 }
 
-const defaultProvider: ProviderMode = import.meta.env.VITE_API_BASE_URL ? "api" : "mock";
+// Only the mock provider exists in this build. Defaulting to "api" because a
+// base URL is configured would label fixture data as live data.
+const defaultProvider: ProviderMode = "mock";
 
 export const useEnvStore = create<EnvState>()(
   persist(
@@ -28,6 +30,9 @@ export const useEnvStore = create<EnvState>()(
     {
       name: "recon_env_store_v1",
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      // Discard a previously saved "api" selection; it was never served.
+      migrate: () => ({ provider: defaultProvider }),
       partialize: (state) => ({ provider: state.provider })
     }
   )

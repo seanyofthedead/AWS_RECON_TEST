@@ -144,7 +144,7 @@ export const ResolvedCasesPage = () => {
                   Resolution
                   <InfoTooltip
                     label="Resolution definition"
-                    text="How the case was closed."
+                    text="Recorded closure disposition. Seeded demo closures come from fixture data and have no recorded disposition."
                   />
                 </span>
               </th>
@@ -195,7 +195,11 @@ export const ResolvedCasesPage = () => {
                   <td className="px-4 py-3">{row.vendor}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-semibold text-emerald-700">
-                      {row.reviewed ? "Reviewed" : "Auto-resolved"}
+                      {row.closureDisposition === "MATCH_CONFIRMED"
+                        ? "Match confirmed"
+                        : row.closureDisposition === "DOCUMENTED_EXCEPTION"
+                          ? "Documented exception"
+                          : "Seeded demo closure"}
                     </span>
                   </td>
                   <td className="px-4 py-3">

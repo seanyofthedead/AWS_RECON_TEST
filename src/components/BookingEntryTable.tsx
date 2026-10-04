@@ -9,11 +9,11 @@ export const BookingEntryTable = ({ entry }: BookingEntryTableProps) => {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">
       <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Posting-ready entry (for review)
+        Illustrative entry lines
       </div>
       <div className="mt-2 overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <caption className="sr-only">Posting-ready entry lines</caption>
+          <caption className="sr-only">Illustrative entry lines</caption>
           <thead className="text-slate-500">
             <tr>
               <th scope="col" className="pb-2 pr-4">Entry Type</th>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDataProvider } from "../hooks/useDataProvider";
 import { CaseStatus } from "../types/case";
 import { useToastStore } from "../store/toastStore";
@@ -12,6 +12,7 @@ import { useRoutePerf } from "../hooks/useRoutePerf";
 import { useRecommendations } from "../hooks/useRecommendations";
 import { getRootCauseLabel } from "../utils/rootCause";
 import { RecommendationCard } from "../components/RecommendationCard";
+import { OverrideModal } from "../components/OverrideModal";
 
 export const EscalationsPage = () => {
   useRoutePerf("Escalations");
@@ -47,24 +48,7 @@ export const EscalationsPage = () => {
     enabled: Boolean(selectedCaseId)
   });
 
-  const closeMutation = useMutation({
-    mutationFn: (caseId: string) =>
-      dataProvider.reviewCase(caseId, {
-        decisionType: "CLOSE_AS_RESOLVED",
-        reasonCode: "POLICY_MATCH",
-        rationale: "Escalation resolved and closed.",
-        evidenceIds: []
-      }),
-    onSuccess: () => {
-      addToast({ message: "Escalation closed.", type: "success" });
-      void queryClient.invalidateQueries({ queryKey: ["cases"] });
-      void queryClient.invalidateQueries({ queryKey: ["case", selectedCaseId] });
-      void queryClient.invalidateQueries({ queryKey: ["escalations"] });
-    },
-    onError: () => {
-      addToast({ message: "Unable to close escalation.", type: "error" });
-    }
-  });
+  const [closeOpen, setCloseOpen] = useState(false);
 
   const priorityStyles: Record<string, string> = {
     low: "bg-slate-100 text-slate-700",
@@ -158,7 +142,7 @@ export const EscalationsPage = () => {
         ))}
         <InfoTooltip
           label="Priority definition"
-          text="Priority reflects risk and urgency."
+          text="Demo priority is seeded per case; it is not yet derived from exposure, age, or deadlines."
         />
       </section>
 
@@ -337,8 +321,8 @@ export const EscalationsPage = () => {
 
               <button
                 type="button"
-                onClick={() => closeMutation.mutate(selectedPacket.caseId)}
-                disabled={closeMutation.isPending}
+                onClick={() => setCloseOpen(true)}
+                disabled={!selectedCase}
                 className="inline-flex items-center justify-center rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Close Escalation
@@ -347,6 +331,20 @@ export const EscalationsPage = () => {
           )}
         </aside>
       </div>
+      {selectedCase ? (
+        <OverrideModal
+          isOpen={closeOpen}
+          initialDecisionType="CLOSE_AS_RESOLVED"
+          caseFile={selectedCase}
+          onClose={() => setCloseOpen(false)}
+          onSuccess={(message) => {
+            addToast({ message, type: "success" });
+            void queryClient.invalidateQueries({ queryKey: ["cases"] });
+            void queryClient.invalidateQueries({ queryKey: ["case", selectedCase.caseId] });
+            void queryClient.invalidateQueries({ queryKey: ["escalations"] });
+          }}
+        />
+      ) : null}
     </div>
   );
 };

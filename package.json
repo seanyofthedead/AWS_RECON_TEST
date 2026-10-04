@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit --incremental false",
     "generate:evidence": "node scripts/generate-demo-evidence.mjs --limit 30",
     "generate:evidence:clean": "node scripts/generate-demo-evidence.mjs --clean --limit 30"
   },
@@ -30,6 +32,7 @@
     "postcss": "^8.4.41",
     "tailwindcss": "^3.4.10",
     "typescript": "^5.6.2",
-    "vite": "^5.4.2"
+    "vite": "^5.4.2",
+    "vitest": "^2.1.9"
   }
 }

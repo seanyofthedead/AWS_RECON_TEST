@@ -29,6 +29,7 @@ import {
   vendorDisplayName
 } from "../utils/demoIdentities";
 import { formatCurrency } from "../utils/formatCurrency";
+import { evaluateDecision } from "../utils/closurePolicy";
 
 interface CanonicalVarianceRow {
   transactionid?: string;
@@ -38,8 +39,13 @@ interface CanonicalVarianceRow {
   commentary?: string;
   evidence_doc_ids?: string;
   doc_number?: string;
+  // Realistic display IDs (PO_Number / Invoice_ID columns).
   po_number?: string;
   invoice_id?: string;
+  // Join IDs (lowercase po_number / invoice_id columns) shared with the
+  // receipt, GL, and invoice rows. Comparisons use these.
+  join_po_number?: string;
+  join_invoice_id?: string;
   next_steps?: string;
   invoice_po_number?: string;
   receipt_id?: string;
@@ -160,6 +166,19 @@ type TransactionOverrides = {
   resolvedAt?: string;
 };
 
+const statusForDecision = (decisionType: ReviewDecisionType) => {
+  if (decisionType === "ESCALATE") {
+    return CaseStatus.Escalated;
+  }
+  if (decisionType === "REQUEST_MORE_EVIDENCE") {
+    return CaseStatus.ScreenedUnresolved;
+  }
+  if (decisionType === "CLOSE_AS_RESOLVED") {
+    return CaseStatus.Resolved;
+  }
+  return CaseStatus.Reviewed;
+};
+
 const mapTransactionRow = (
   row: Record<string, string>,
   decisions: ReviewDecision[],
@@ -209,38 +228,36 @@ const mapTransactionRow = (
       ? matchingDecisions[matchingDecisions.length - 1]
       : undefined;
 
-  let status = overrides.status ?? CaseStatus.ScreenedUnresolved;
-  if (!overrides.status) {
-    if (matchingDecision) {
-      status = matchingDecision.decisionType === "ESCALATE"
-        ? CaseStatus.Escalated
-        : matchingDecision.decisionType === "REQUEST_MORE_EVIDENCE"
-          ? CaseStatus.ScreenedUnresolved
-          : matchingDecision.decisionType === "CLOSE_AS_RESOLVED"
-            ? CaseStatus.Resolved
-            : CaseStatus.Reviewed;
-    } else {
-      const reviewedFlag = String(row.Reviewed ?? "false").toLowerCase() === "true";
-      const escalatedFlag = String(row.Escalate ?? "false").toLowerCase() === "true";
-      if (escalatedFlag) {
-        status = CaseStatus.Escalated;
-      } else if (reviewedFlag) {
-        // Deterministically promote a subset of Reviewed rows to Resolved so
-        // the Resolved page is populated on a fresh load. The hash is stable
-        // across reloads, so the same cases land in Resolved every time.
-        const promoteToResolved = hashString(`${caseId}-resolved`) % 100 < 37;
-        status = promoteToResolved ? CaseStatus.Resolved : CaseStatus.Reviewed;
-      }
+  // Saved decisions always win. Import overrides only set the starting state
+  // of rows nobody has acted on yet.
+  let status = CaseStatus.ScreenedUnresolved;
+  if (matchingDecision) {
+    status = statusForDecision(matchingDecision.decisionType);
+  } else if (overrides.status) {
+    status = overrides.status;
+  } else {
+    const reviewedFlag = String(row.Reviewed ?? "false").toLowerCase() === "true";
+    const escalatedFlag = String(row.Escalate ?? "false").toLowerCase() === "true";
+    if (escalatedFlag) {
+      status = CaseStatus.Escalated;
+    } else if (reviewedFlag) {
+      // Deterministically promote a subset of Reviewed rows to Resolved so
+      // the Resolved page is populated on a fresh load. The hash is stable
+      // across reloads, so the same cases land in Resolved every time.
+      const promoteToResolved = hashString(`${caseId}-resolved`) % 100 < 37;
+      status = promoteToResolved ? CaseStatus.Resolved : CaseStatus.Reviewed;
     }
   }
 
-  const reviewed = overrides.reviewed ?? status !== CaseStatus.ScreenedUnresolved;
-  const lastUpdated = overrides.lastUpdated ?? matchingDecision?.timestamp ?? postingDate;
-  let resolvedAt =
-    overrides.resolvedAt ??
-    (matchingDecision?.decisionType === "CLOSE_AS_RESOLVED"
+  const reviewed = matchingDecision
+    ? true
+    : overrides.reviewed ?? status !== CaseStatus.ScreenedUnresolved;
+  const lastUpdated = matchingDecision?.timestamp ?? overrides.lastUpdated ?? postingDate;
+  let resolvedAt = matchingDecision
+    ? matchingDecision.decisionType === "CLOSE_AS_RESOLVED"
       ? matchingDecision.timestamp
-      : undefined);
+      : undefined
+    : overrides.resolvedAt;
   if (!resolvedAt && status === CaseStatus.Resolved) {
     const postingMs = Date.parse(postingDate);
     if (Number.isFinite(postingMs)) {
@@ -270,7 +287,17 @@ const mapTransactionRow = (
     lastUpdated,
     canonicalAiReason: canonicalMatch?.ai_reason,
     canonicalVarianceCategory: canonicalMatch?.variance_category,
-    resolvedAt
+    resolvedAt,
+    closureDisposition:
+      matchingDecision?.decisionType === "CLOSE_AS_RESOLVED"
+        ? matchingDecision.disposition
+        : undefined,
+    sourceRefs: {
+      invoiceId: row.invoice_id || undefined,
+      poNumber: row.po_number || undefined,
+      vendorId: row.vendor_id || undefined,
+      invoiceAmount: row.invoice_amount || undefined
+    }
   };
   if (resolvedAt) {
     transaction.status = CaseStatus.Resolved;
@@ -412,66 +439,31 @@ const pickFromPool = (
   return selected.map((item) => (typeof item === "function" ? item(ctx) : item));
 };
 
+// Built only from source rows. The diagnosis (AI reason) is never used to
+// create or alter evidence, so the match result can disagree with it.
 const buildMatchEvidence = (
   transaction: TransactionRow,
-  canonical: CanonicalVarianceRow,
-  rootCauseLabel: string
+  canonical: CanonicalVarianceRow
 ): MatchEvidence => {
-  const normalizedTxId = normalizeTxId(transaction.transactionId);
-  const seed = hashString(`${normalizedTxId}-match`);
-  const docNumber = canonical.doc_number || `DOC-${(seed % 900000) + 100000}`;
-  const poNumber = canonical.po_number || `PO-${(seed % 90000) + 10000}`;
-  const invoiceId = canonical.invoice_id || `INV-${(seed % 9000000) + 1000000}`;
-  const receiptIdBase = `RCPT-${(seed % 900000) + 100000}`;
-  const glPostingId =
-    canonical.gl_posting_id || `GL-${(seed % 9000000) + 1000000}`;
-
-  let invoicePoNumber: string | undefined = poNumber;
-  let receiptId: string | undefined = receiptIdBase;
-  let receiptNumber: string | undefined = receiptIdBase;
-  let receiptPoNumber: string | undefined = poNumber;
-  let glInvoiceId: string | undefined = invoiceId;
-
-  switch (rootCauseLabel) {
-    case "Wrong PO Reference": {
-      const altSeed = hashString(`${normalizedTxId}-alt-po`);
-      invoicePoNumber = `PO-${(altSeed % 90000) + 10000}`;
-      break;
-    }
-    case "Missing Receipt": {
-      receiptId = undefined;
-      receiptNumber = undefined;
-      receiptPoNumber = undefined;
-      break;
-    }
-    case "Wrong Vendor Mapping": {
-      const altSeed = hashString(`${normalizedTxId}-alt-inv`);
-      glInvoiceId = `INV-${(altSeed % 9000000) + 1000000}`;
-      break;
-    }
-    case "Batch Interface Failure": {
-      glInvoiceId = undefined;
-      break;
-    }
-    default:
-      break;
-  }
-
   return {
-    transactionId: normalizedTxId,
-    invoiceId,
-    poNumber,
-    invoicePoNumber,
-    receiptId,
-    receiptNumber,
-    receiptPoNumber,
-    glDocumentId: docNumber,
-    glPostingId,
-    glInvoiceId,
+    transactionId: normalizeTxId(transaction.transactionId),
+    invoiceId: canonical.join_invoice_id || undefined,
+    poNumber: canonical.join_po_number || undefined,
+    // The invoice row's own PO reference, from the invoice source file.
+    invoicePoNumber: transaction.sourceRefs?.poNumber,
+    receiptId: canonical.receipt_id || undefined,
+    receiptNumber: canonical.receipt_number || undefined,
+    receiptPoNumber: canonical.receipt_po_number || undefined,
+    glDocumentId: canonical.gl_document_id || undefined,
+    glPostingId: canonical.gl_posting_id || undefined,
+    glInvoiceId: canonical.gl_invoice_id || undefined,
     vendorId: canonical.vendor_id,
+    displayInvoiceId: canonical.invoice_id || undefined,
+    displayPoNumber: canonical.po_number || undefined,
     poAmount: canonical.po_amount,
     receiptAmount: canonical.receipt_amount,
-    glAmount: canonical.gl_amount
+    glAmount: canonical.gl_amount,
+    monetaryVariance: String(transaction.variance)
   };
 };
 
@@ -547,21 +539,26 @@ const writeDecisions = (decisions: ReviewDecision[]) => {
   localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(decisions));
 };
 
-const readImportedBatches = (): number[] => {
+type ImportedBatch = { batchId: number; importedAt?: string };
+
+// Older saves stored bare batch numbers without an import time.
+const readImportedBatches = (): ImportedBatch[] => {
   const raw = localStorage.getItem(IMPORT_BATCH_STORAGE_KEY);
   if (!raw) {
     return [];
   }
   try {
-    const parsed = JSON.parse(raw) as number[];
-    return parsed.filter((value) => Number.isFinite(value));
+    const parsed = JSON.parse(raw) as Array<number | ImportedBatch>;
+    return parsed
+      .map((entry) => (typeof entry === "number" ? { batchId: entry } : entry))
+      .filter((entry) => Number.isFinite(entry?.batchId));
   } catch {
     return [];
   }
 };
 
-const writeImportedBatches = (batchIds: number[]) => {
-  localStorage.setItem(IMPORT_BATCH_STORAGE_KEY, JSON.stringify(batchIds));
+const writeImportedBatches = (batches: ImportedBatch[]) => {
+  localStorage.setItem(IMPORT_BATCH_STORAGE_KEY, JSON.stringify(batches));
 };
 
 export class MockDataProvider implements DataProvider {
@@ -570,7 +567,7 @@ export class MockDataProvider implements DataProvider {
   private transactions: TransactionRow[] = [];
   private cases = new Map<string, CaseFile>();
   private canonicalByTxId = new Map<string, CanonicalVarianceRow>();
-  private importedBatchIds = new Set<number>();
+  private importedBatches = new Map<number, ImportedBatch>();
 
   static getInstance() {
     if (!MockDataProvider.instance) {
@@ -603,6 +600,8 @@ export class MockDataProvider implements DataProvider {
         doc_number: raw.Doc_Number ?? normalized.doc_number,
         po_number: raw.PO_Number ?? normalized.po_number,
         invoice_id: raw.Invoice_ID ?? normalized.invoice_id,
+        join_po_number: raw.po_number,
+        join_invoice_id: raw.invoice_id,
         next_steps: normalized.next_steps,
         invoice_po_number: normalized.invoice_po_number,
         receipt_id: normalized.receipt_id,
@@ -652,14 +651,16 @@ export class MockDataProvider implements DataProvider {
         console.debug(`[demo] baseline expected 13-100, got ${min}-${max}.`);
       }
     }
-    const importedBatchIds = readImportedBatches();
-    this.importedBatchIds = new Set(importedBatchIds);
-    if (importedBatchIds.includes(1)) {
+    this.importedBatches = new Map(
+      readImportedBatches().map((entry) => [entry.batchId, entry])
+    );
+    const batchOne = this.importedBatches.get(1);
+    if (batchOne) {
       const batchRows = await parseCsv<Record<string, string>>(
         "/data/ui_transactions_batch_1.csv"
       );
       const existingCaseIds = new Set(this.transactions.map((item) => item.caseId));
-      const importTimestamp = new Date().toISOString();
+      const importTimestamp = batchOne.importedAt;
       const batchTransactions = dedupeTransactions(
         mapTransactionRows(
           batchRows,
@@ -712,9 +713,8 @@ export class MockDataProvider implements DataProvider {
     const canonicalLookupKey =
       caseIndex != null ? `TX-${1000000 + caseIndex}` : normalizeTxId(transaction.transactionId);
     const canonicalMatch = this.canonicalByTxId.get(canonicalLookupKey);
-    const rootCauseLabel = getRootCauseLabel(transaction);
     const matchEvidence = canonicalMatch
-      ? buildMatchEvidence(transaction, canonicalMatch, rootCauseLabel)
+      ? buildMatchEvidence(transaction, canonicalMatch)
       : undefined;
     const postingDate = new Date(transaction.postingDate);
     const stableDate = Number.isNaN(postingDate.getTime())
@@ -764,8 +764,8 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "Invoice",
         description: "Supplier invoice document.",
-        snippet: matchEvidence?.invoiceId
-          ? `Invoice ID ${matchEvidence.invoiceId}`
+        snippet: matchEvidence?.displayInvoiceId
+          ? `Invoice ID ${matchEvidence.displayInvoiceId}`
           : "Invoice ID on file.",
         source: "AP Extract",
         weight: Number((0.5 + rand() * 0.4).toFixed(2)),
@@ -777,8 +777,8 @@ export class MockDataProvider implements DataProvider {
         kind: "document",
         title: "Purchase Order",
         description: "Purchase order document.",
-        snippet: matchEvidence?.poNumber
-          ? `PO ${matchEvidence.poNumber}`
+        snippet: matchEvidence?.displayPoNumber
+          ? `PO ${matchEvidence.displayPoNumber}`
           : "Purchase order on file.",
         source: "Procurement",
         weight: Number((0.55 + rand() * 0.35).toFixed(2)),
@@ -822,7 +822,10 @@ export class MockDataProvider implements DataProvider {
       },
       {
         id: `${transaction.caseId}-claim-2`,
-        statement: "Receipt and GL posting documentation are available for review.",
+        statement:
+          matchEvidence?.receiptId && matchEvidence?.glDocumentId
+            ? "Receipt and GL posting records are present in source data."
+            : "Receipt or GL posting record is missing from source data.",
         source: "Variance Analyzer",
         confidence: Number((0.6 + rand() * 0.3).toFixed(2)),
         supportedByEvidenceIds: [evidenceIds[2], evidenceIds[3]]
@@ -836,19 +839,21 @@ export class MockDataProvider implements DataProvider {
       }
     ];
     const conflicts: ConflictFlag[] = [];
-    if (transaction.variance > 500 || rand() > 0.7) {
+    // Materiality uses magnitude so understatements are flagged too.
+    const varianceMagnitude = Math.abs(transaction.variance);
+    if (varianceMagnitude > 500 || rand() > 0.7) {
       conflicts.push({
         id: `${transaction.caseId}-conflict-1`,
         description: "Variance exceeds typical category mean.",
-        severity: transaction.variance > 800 ? "high" : "medium",
+        severity: varianceMagnitude > 800 ? "high" : "medium",
         checklist: pickFromPool(
           MISSING_CHECKLIST_POOL,
           hashString(`${transaction.caseId}-conflict-1`),
           3,
           {
             vendor: transaction.vendor,
-            invoiceId: matchEvidence?.invoiceId ?? "",
-            poNumber: matchEvidence?.poNumber ?? ""
+            invoiceId: matchEvidence?.displayInvoiceId ?? "",
+            poNumber: matchEvidence?.displayPoNumber ?? ""
           }
         )
       });
@@ -864,8 +869,8 @@ export class MockDataProvider implements DataProvider {
           2,
           {
             vendor: transaction.vendor,
-            invoiceId: matchEvidence?.invoiceId ?? "",
-            poNumber: matchEvidence?.poNumber ?? ""
+            invoiceId: matchEvidence?.displayInvoiceId ?? "",
+            poNumber: matchEvidence?.displayPoNumber ?? ""
           }
         )
       });
@@ -886,7 +891,12 @@ export class MockDataProvider implements DataProvider {
         field: "Amount match",
         expected: formatCurrency(transaction.amount),
         actual: formatCurrency(transaction.amount + transaction.variance),
-        status: transaction.variance > 300 ? "mismatch" : "warning"
+        status:
+          transaction.variance === 0
+            ? "match"
+            : varianceMagnitude > 300
+              ? "mismatch"
+              : "warning"
       },
       {
         id: `${transaction.caseId}-structured-3`,
@@ -900,8 +910,8 @@ export class MockDataProvider implements DataProvider {
       "Screened transaction against canonical benchmarks.",
       "Planned evidence pull across Procurement, Receiving, and GL.",
       "Retrieved invoice, PO, and GL artifacts for review.",
-      `Verified three-way match (${rootCauseLabel}).`,
-      "Reported findings; assembled posting-ready recommendation."
+      "Ran reference-link and amount checks on source rows.",
+      "Reported findings; assembled illustrative recommendation."
     ];
     const runLog: RunLogEntry[] = runLogMessages.map((message, index) => {
       const stepDate = new Date(createdAtBase);
@@ -914,6 +924,11 @@ export class MockDataProvider implements DataProvider {
         message
       };
     });
+    const latestDecision = readDecisions()
+      .filter((decision) => decision.caseId === transaction.caseId)
+      .pop();
+    const closingDecision =
+      latestDecision?.decisionType === "CLOSE_AS_RESOLVED" ? latestDecision : undefined;
     const caseFile: CaseFile = {
       caseId: transaction.caseId,
       transactionId: transaction.transactionId,
@@ -925,7 +940,9 @@ export class MockDataProvider implements DataProvider {
       runLog,
       structuredRows,
       matchEvidence,
-      resolvedAt: transaction.status === CaseStatus.Resolved ? transaction.lastUpdated : undefined
+      resolvedAt: transaction.status === CaseStatus.Resolved ? transaction.lastUpdated : undefined,
+      closureDisposition: closingDecision?.disposition,
+      residualVariance: closingDecision?.residualVariance
     };
     this.cases.set(transaction.caseId, caseFile);
     return caseFile;
@@ -952,32 +969,47 @@ export class MockDataProvider implements DataProvider {
       throw new Error("Case not found.");
     }
     const normalizedRequest = this.normalizeReviewRequest(request);
-    const resolvedTimestamp = new Date().toISOString();
+    const transaction = this.transactions[transactionIndex];
+    const caseFile = await this.getCaseFromTransaction(transaction);
+    const check = evaluateDecision({
+      decisionType: normalizedRequest.decisionType,
+      caseFile,
+      rationale: normalizedRequest.rationale,
+      evidenceIds: normalizedRequest.evidenceIds
+    });
+    if (!check.allowed) {
+      throw new Error(check.blockers.join(" "));
+    }
+    const timestamp = new Date().toISOString();
     const decision: ReviewDecision = {
       caseId,
       ...normalizedRequest,
       reviewer: "UI Analyst",
-      timestamp: resolvedTimestamp
+      timestamp,
+      ...(normalizedRequest.decisionType === "CLOSE_AS_RESOLVED"
+        ? { disposition: check.disposition, residualVariance: transaction.variance }
+        : {})
     };
     const decisions = readDecisions();
     decisions.push(decision);
     writeDecisions(decisions);
 
-    const status = this.getStatusForDecision(normalizedRequest.decisionType);
+    const status = statusForDecision(normalizedRequest.decisionType);
+    const isClosed = status === CaseStatus.Resolved;
+    // Current resolution fields reflect the current state only; earlier
+    // closures stay in the decision history.
     this.transactions[transactionIndex] = {
-      ...this.transactions[transactionIndex],
+      ...transaction,
       status,
       reviewed: true,
-      lastUpdated: decision.timestamp
+      lastUpdated: timestamp,
+      resolvedAt: isClosed ? timestamp : undefined,
+      closureDisposition: isClosed ? decision.disposition : undefined
     };
-    const caseFile = await this.getCaseFromTransaction(this.transactions[transactionIndex]);
     caseFile.status = status;
-    if (status === CaseStatus.Resolved) {
-      caseFile.resolvedAt = decision.timestamp;
-      this.transactions[transactionIndex].status = CaseStatus.Resolved;
-      this.transactions[transactionIndex].lastUpdated = decision.timestamp;
-      this.transactions[transactionIndex].resolvedAt = decision.timestamp;
-    }
+    caseFile.resolvedAt = isClosed ? timestamp : undefined;
+    caseFile.closureDisposition = isClosed ? decision.disposition : undefined;
+    caseFile.residualVariance = isClosed ? decision.residualVariance : undefined;
     this.cases.set(caseId, caseFile);
     return decision;
   }
@@ -994,10 +1026,22 @@ export class MockDataProvider implements DataProvider {
     return this.buildReviewerPacket(caseId);
   }
 
+  // Confirms the claim cites this evidence and the evidence has a document.
+  // It does not confirm the document's contents support the claim.
   async verifyLink(request: { caseId: string; claimId: string; evidenceId: string }) {
     await this.initialize();
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return { ok: Boolean(request.caseId && request.claimId && request.evidenceId) };
+    const transaction = this.transactions.find((item) => item.caseId === request.caseId);
+    if (!transaction) {
+      return { ok: false };
+    }
+    const caseFile = await this.getCaseFromTransaction(transaction);
+    const claim = caseFile.claims.find((item) => item.id === request.claimId);
+    const evidence = caseFile.evidence.find((item) => item.id === request.evidenceId);
+    return {
+      ok: Boolean(
+        claim && evidence?.url && claim.supportedByEvidenceIds.includes(evidence.id)
+      )
+    };
   }
 
   async importNextBatch(batchId: number) {
@@ -1007,7 +1051,7 @@ export class MockDataProvider implements DataProvider {
       return { importedCount: 0, caseIds: [] };
     }
 
-    if (this.importedBatchIds.has(normalizedBatchId)) {
+    if (this.importedBatches.has(normalizedBatchId)) {
       return { importedCount: 0, caseIds: [] };
     }
 
@@ -1038,8 +1082,11 @@ export class MockDataProvider implements DataProvider {
       this.transactions.push(...newTransactions);
       this.transactions = dedupeTransactions(this.transactions);
     }
-    this.importedBatchIds.add(normalizedBatchId);
-    writeImportedBatches(Array.from(this.importedBatchIds));
+    this.importedBatches.set(normalizedBatchId, {
+      batchId: normalizedBatchId,
+      importedAt: importTimestamp
+    });
+    writeImportedBatches(Array.from(this.importedBatches.values()));
     if (import.meta.env.DEV) {
       logCaseIndexSummary(newTransactions, "imported batch");
       logCaseIndexSummary(this.transactions, "after import");
@@ -1062,19 +1109,6 @@ export class MockDataProvider implements DataProvider {
       }
     }
     return { importedCount: newTransactions.length, caseIds: newTransactions.map((t) => t.caseId) };
-  }
-
-  private getStatusForDecision(decisionType: ReviewDecisionType) {
-    if (decisionType === "ESCALATE") {
-      return CaseStatus.Escalated;
-    }
-    if (decisionType === "REQUEST_MORE_EVIDENCE") {
-      return CaseStatus.ScreenedUnresolved;
-    }
-    if (decisionType === "CLOSE_AS_RESOLVED") {
-      return CaseStatus.Resolved;
-    }
-    return CaseStatus.Reviewed;
   }
 
   private normalizeReviewRequest(request: ReviewRequest): ReviewRequestNormalized {

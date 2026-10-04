@@ -64,9 +64,14 @@ export interface MatchEvidence {
   glPostingId?: string;
   glInvoiceId?: string;
   vendorId?: string;
+  // Display aliases for the join IDs above; never used for comparison.
+  displayInvoiceId?: string;
+  displayPoNumber?: string;
   poAmount?: string;
   receiptAmount?: string;
   glAmount?: string;
+  // Signed monetary variance reported for the case.
+  monetaryVariance?: string;
 }
 
 export interface CaseFile {
@@ -81,4 +86,6 @@ export interface CaseFile {
   structuredRows: StructuredRow[];
   matchEvidence?: MatchEvidence;
   resolvedAt?: string;
+  closureDisposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  residualVariance?: number;
 }
