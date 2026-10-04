@@ -127,3 +127,13 @@ describe("escalation snapshots", () => {
     expect(getEscalationRecommendation("CASE-X")).toBeUndefined();
   });
 });
+
+describe("zero variance", () => {
+  it("proposes no journal entry", () => {
+    const rec = recommendFix({
+      caseId: "CASE-ZERO",
+      transaction: { variance: 0, canonicalAiReason: "Timing Difference" } as never
+    });
+    expect(rec.bookingEntry).toBeUndefined();
+  });
+});

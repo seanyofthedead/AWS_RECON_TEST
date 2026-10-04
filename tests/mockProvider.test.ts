@@ -209,3 +209,59 @@ describe("fixture-grounded match evidence", () => {
     expect(caseFile.conflicts.some((c) => c.severity === "high")).toBe(true);
   });
 });
+
+describe("fixture match scenarios", () => {
+  const caseFor = async (caseId: string) => {
+    const provider = new MockDataProvider();
+    const row = (await provider.getCases()).find((item) => item.caseId === caseId)!;
+    const caseFile = await provider.getCase(caseId);
+    return { provider, row, caseFile, match: evaluateThreeWayMatch(caseFile.matchEvidence) };
+  };
+
+  it("confirms a zero-variance match and closes it as MATCH_CONFIRMED", async () => {
+    const { provider, row, caseFile, match } = await caseFor("CASE-00027");
+    expect(row.variance).toBe(0);
+    expect(match.status).toBe("pass");
+    const decision = await provider.reviewCase(caseFile.caseId, {
+      decisionType: "CLOSE_AS_RESOLVED",
+      reasonCode: "POLICY_MATCH",
+      rationale: RATIONALE,
+      evidenceIds: [caseFile.evidence[0].id]
+    });
+    expect(decision.disposition).toBe("MATCH_CONFIRMED");
+  });
+
+  it("fails the reference check when the invoice cites another PO", async () => {
+    for (const caseId of ["CASE-00013", "CASE-00063"]) {
+      const { match } = await caseFor(caseId);
+      expect(match.referenceStatus, caseId).toBe("fail");
+    }
+    const { provider, caseFile } = await caseFor("CASE-00063");
+    await expect(
+      provider.reviewCase(caseFile.caseId, {
+        decisionType: "CLOSE_AS_RESOLVED",
+        reasonCode: "OTHER",
+        rationale: RATIONALE,
+        evidenceIds: [caseFile.evidence[0].id]
+      })
+    ).rejects.toThrow(/Three-way match failed/);
+  });
+
+  it("fails the amount check with a GL difference equal to the variance", async () => {
+    for (const caseId of ["CASE-00090", "CASE-00038"]) {
+      const { row, caseFile, match } = await caseFor(caseId);
+      expect(match.referenceStatus, caseId).toBe("pass");
+      expect(match.amountStatus, caseId).toBe("fail");
+      const posted = Number(caseFile.matchEvidence!.glAmount);
+      expect(Number((row.amount - posted).toFixed(2)), caseId).toBe(row.variance);
+    }
+    expect((await caseFor("CASE-00038")).row.variance).toBeLessThan(0);
+  });
+
+  it("leaves a missing receipt inconclusive and unlinked", async () => {
+    const { caseFile, match } = await caseFor("CASE-00021");
+    expect(match.status).toBe("inconclusive");
+    expect(match.receiptNote).toMatch(/No receipt/);
+    expect(caseFile.evidence.find((e) => e.title === "Receipt")?.url).toBeUndefined();
+  });
+});

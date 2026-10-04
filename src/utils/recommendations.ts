@@ -15,7 +15,7 @@ type RecommendationInput = {
 };
 
 // Bump when templates change so cached recommendations are recomputed.
-export const RULES_VERSION = "2026-10-04";
+export const RULES_VERSION = "2026-10-04.2";
 
 const STORAGE_KEY_PROPOSED = "recon_recommendation_proposed_v1";
 const STORAGE_KEY_ESCALATION = "recon_recommendation_escalation_v1";
@@ -470,8 +470,24 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
 
 const recommendationCache = new Map<string, Recommendation[]>();
 
+// A zero variance needs no journal; never propose a $0.00 entry.
+const noAdjustment = (category: RootCauseCategory): Recommendation => ({
+  id: "rec-no-adjustment",
+  title: "No adjustment required",
+  rationale: "Reported variance is zero",
+  nextSteps: [
+    "Confirm the three-way match passes",
+    "Close the case with the matched documents attached"
+  ],
+  confidence: confidenceForCategory(category),
+  source: "rules"
+});
+
 export const recommendFix = (input: RecommendationInput): Recommendation => {
   const rootCause = deriveRootCause(input);
+  if (input.transaction && input.transaction.variance === 0) {
+    return noAdjustment(rootCause);
+  }
   return recommendationTemplates[rootCause](input);
 };
 

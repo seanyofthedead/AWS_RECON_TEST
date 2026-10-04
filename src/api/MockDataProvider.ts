@@ -798,7 +798,8 @@ export class MockDataProvider implements DataProvider {
         source: "Receiving",
         weight: Number((0.5 + rand() * 0.4).toFixed(2)),
         createdAt: createdAtValues[2],
-        url: receiptUrl
+        // Don't link a receipt document the source data says does not exist.
+        url: matchEvidence?.receiptId || matchEvidence?.receiptNumber ? receiptUrl : undefined
       },
       {
         id: evidenceIds[3],
@@ -877,6 +878,11 @@ export class MockDataProvider implements DataProvider {
         )
       });
     }
+    const glAmount = Number(matchEvidence?.glAmount);
+    const postedAmount =
+      matchEvidence?.glAmount && Number.isFinite(glAmount)
+        ? glAmount
+        : transaction.amount - transaction.variance;
     const postingExpected = "Within policy window";
     const postingActual =
       rand() > 0.7 ? "Outside policy window" : "Within policy window";
@@ -892,12 +898,14 @@ export class MockDataProvider implements DataProvider {
         id: `${transaction.caseId}-structured-2`,
         field: "Amount match",
         expected: formatCurrency(transaction.amount),
-        actual: formatCurrency(transaction.amount + transaction.variance),
+        // Posted amount comes from the GL source row. Variance is expected
+        // (invoice) minus posted, matching the recommendation templates.
+        actual: formatCurrency(postedAmount),
         status:
-          transaction.variance === 0
-            ? "match"
-            : varianceMagnitude > 300
-              ? "mismatch"
+          Math.abs(postedAmount - transaction.amount) > 0.005
+            ? "mismatch"
+            : transaction.variance === 0
+              ? "match"
               : "warning"
       },
       {

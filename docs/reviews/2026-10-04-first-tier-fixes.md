@@ -29,7 +29,7 @@ Scope: mock provider only, Cognito sign-in unchanged. The work was done in a fre
 
 ## Observable changes in the demo
 
-- Fixture match results: all 88 baseline cases now show "Reference links: PASS · Amounts: INCONCLUSIVE". The fixture's PO, receipt, and GL amounts all equal the invoice amount, so they cannot explain any variance. Earlier PASS and FAIL results came from synthesized mismatches.
+- Fixture match results: the fixtures now include one case per match outcome. CASE-00027 has zero variance and passes, so it closes as a confirmed match. CASE-00013 and CASE-00063 fail the reference check because the invoice cites another PO. CASE-00038 (a negative variance) and CASE-00090 fail the amount check because the GL amount differs from the invoice by exactly the variance. CASE-00021 and imported CASE-00004 have no receipt and stay inconclusive. Failed matches block closure. The other 93 cases show "Reference links: PASS · Amounts: INCONCLUSIVE". These fixtures treat signed variance as invoice amount minus GL amount; an accounting owner still needs to confirm that convention. The evidence PDFs for CASE-00038 and CASE-00090 still show the invoice amount as posted, because they are generated outside this repo.
 - The Inbox's one-click close is replaced by "Review to close", which opens the decision form on the case page.
 - Committed source showed the header badge `USCG CIP · Demo`, and the deployed bundle shows `FEMA · DEMO`. Both labels were carried over by mistake with the Amplify and Cognito configuration borrowed from a separate Amplify app, so the badge has been removed from source. The deployed bundle still shows it until it is rebuilt. The mismatch is further evidence that committed source does not reproduce the deployed ZIP.
 
