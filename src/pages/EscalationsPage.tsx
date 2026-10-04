@@ -67,7 +67,7 @@ export const EscalationsPage = () => {
     return cases.find((row) => row.caseId === selectedCaseId);
   }, [cases, selectedCaseId]);
 
-  const { primary: recommendation } = useRecommendations({
+  const { primary: recommendation, staleAttachment } = useRecommendations({
     caseId: selectedCaseId ?? "",
     transaction: selectedTransaction,
     includeEscalationAttachment: true
@@ -267,6 +267,18 @@ export const EscalationsPage = () => {
                   {selectedTransaction ? getRootCauseLabel(selectedTransaction) : "Unknown"}
                 </div>
               </div>
+
+              {staleAttachment ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                  Attached at escalation: "{staleAttachment.recommendation.title}"
+                  {staleAttachment.attachedAt
+                    ? ` on ${new Date(staleAttachment.attachedAt).toLocaleDateString()}`
+                    : ""}
+                  , under superseded recommendation rules
+                  {staleAttachment.rulesVersion ? ` (${staleAttachment.rulesVersion})` : ""}. Its
+                  booking entry is withdrawn; the current recommendation is shown below.
+                </div>
+              ) : null}
 
               {recommendation ? (
                 <RecommendationCard recommendation={recommendation} showActions={false} />

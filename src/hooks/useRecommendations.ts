@@ -21,9 +21,12 @@ export const useRecommendations = ({
   includeEscalationAttachment
 }: UseRecommendationsParams) => {
   return useMemo(() => {
-    const attached = includeEscalationAttachment
+    const attachment = includeEscalationAttachment
       ? getEscalationRecommendation(caseId)
       : undefined;
+    // A snapshot from superseded rules stays on record but is not shown as
+    // the fix; the current recommendation takes its place.
+    const attached = attachment && !attachment.stale ? attachment.recommendation : undefined;
     const recommendations = getRecommendationsForCase({ caseId, transaction, aiReason });
     const primary = attached ?? getPrimaryRecommendation({ caseId, transaction, aiReason });
     const proposedId = getProposedRecommendationId(caseId);
@@ -31,7 +34,8 @@ export const useRecommendations = ({
     return {
       recommendations: list,
       primary,
-      proposedId
+      proposedId,
+      staleAttachment: attachment?.stale ? attachment : undefined
     };
   }, [caseId, transaction, aiReason, includeEscalationAttachment]);
 };

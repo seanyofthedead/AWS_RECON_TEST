@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   ENTRY_LESS_CATEGORIES,
+  RULES_VERSION,
+  attachRecommendationToEscalation,
+  getEscalationRecommendation,
   deriveRootCause,
   getRecommendationsForCase,
   recommendFix
@@ -78,5 +81,49 @@ describe("journal direction and journal eligibility (acceptance check 3)", () =>
       transaction: tx({ canonicalAiReason: "Conversion Error" })
     });
     expect(JSON.stringify(rec)).not.toContain("FX Gain/Loss");
+  });
+});
+
+describe("escalation snapshots", () => {
+  const ESCALATION_KEY = "recon_recommendation_escalation_v1";
+  const transaction = tx({ caseId: "CASE-ESC", canonicalAiReason: "Duplicate Transaction" });
+  const current = () => recommendFix({ caseId: "CASE-ESC", transaction });
+
+  it("stamps new snapshots with the current rules version", () => {
+    attachRecommendationToEscalation("CASE-ESC", current());
+    const attachment = getEscalationRecommendation("CASE-ESC");
+    expect(attachment?.stale).toBe(false);
+    expect(attachment?.rulesVersion).toBe(RULES_VERSION);
+    expect(attachment?.recommendation).toEqual(current());
+  });
+
+  it("flags legacy unstamped snapshots as stale without rewriting them", () => {
+    const legacy = {
+      ...current(),
+      title: "Old posting-ready fix",
+      bookingEntry: {
+        memo: "old",
+        lines: [{ direction: "DEBIT", account: "Expense", amount: 100 }]
+      }
+    };
+    const stored = JSON.stringify({ "CASE-ESC": JSON.stringify(legacy) });
+    localStorage.setItem(ESCALATION_KEY, stored);
+
+    const attachment = getEscalationRecommendation("CASE-ESC");
+    expect(attachment?.stale).toBe(true);
+    expect(attachment?.recommendation.title).toBe("Old posting-ready fix");
+    expect(localStorage.getItem(ESCALATION_KEY)).toBe(stored);
+  });
+
+  it("flags snapshots from another rules version as stale", () => {
+    const snapshot = { rulesVersion: "2025-01-01", attachedAt: "2025-01-02T00:00:00Z", recommendation: current() };
+    localStorage.setItem(ESCALATION_KEY, JSON.stringify({ "CASE-ESC": JSON.stringify(snapshot) }));
+    expect(getEscalationRecommendation("CASE-ESC")?.stale).toBe(true);
+  });
+
+  it("ignores corrupt snapshots", () => {
+    localStorage.setItem(ESCALATION_KEY, JSON.stringify({ "CASE-ESC": "{not json", "CASE-X": "42" }));
+    expect(getEscalationRecommendation("CASE-ESC")).toBeUndefined();
+    expect(getEscalationRecommendation("CASE-X")).toBeUndefined();
   });
 });

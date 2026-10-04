@@ -537,26 +537,74 @@ export const getProposedRecommendationId = (caseId: string) => {
   return map[caseId];
 };
 
+// An escalation snapshot is an audit record of what the analyst escalated, so
+// it is never rewritten. It is stamped with the rules version that produced
+// it; a snapshot from other (or unknown, pre-stamp) rules is reported stale so
+// callers stop presenting its booking entry as current.
+type EscalationSnapshot = {
+  rulesVersion: string;
+  attachedAt: string;
+  recommendation: Recommendation;
+};
+
+export type EscalationAttachment = {
+  recommendation: Recommendation;
+  rulesVersion?: string;
+  attachedAt?: string;
+  stale: boolean;
+};
+
 export const attachRecommendationToEscalation = (
   caseId: string,
   recommendation: Recommendation
 ) => {
   const map = readStorageMap(STORAGE_KEY_ESCALATION);
-  map[caseId] = JSON.stringify(recommendation);
+  const snapshot: EscalationSnapshot = {
+    rulesVersion: RULES_VERSION,
+    attachedAt: new Date().toISOString(),
+    recommendation
+  };
+  map[caseId] = JSON.stringify(snapshot);
   writeStorageMap(STORAGE_KEY_ESCALATION, map);
 };
 
-export const getEscalationRecommendation = (caseId: string) => {
+const isRecommendation = (value: unknown): value is Recommendation =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as Recommendation).id === "string" &&
+  typeof (value as Recommendation).title === "string";
+
+export const getEscalationRecommendation = (
+  caseId: string
+): EscalationAttachment | undefined => {
   const map = readStorageMap(STORAGE_KEY_ESCALATION);
   const raw = map[caseId];
   if (!raw) {
     return undefined;
   }
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as Recommendation;
+    parsed = JSON.parse(raw);
   } catch {
     return undefined;
   }
+  if (typeof parsed !== "object" || parsed === null) {
+    return undefined;
+  }
+  const snapshot = parsed as Partial<EscalationSnapshot>;
+  if (isRecommendation(snapshot.recommendation)) {
+    return {
+      recommendation: snapshot.recommendation,
+      rulesVersion: snapshot.rulesVersion,
+      attachedAt: snapshot.attachedAt,
+      stale: snapshot.rulesVersion !== RULES_VERSION
+    };
+  }
+  // Legacy format: the bare Recommendation, attached before rules were stamped.
+  if (isRecommendation(parsed)) {
+    return { recommendation: parsed, stale: true };
+  }
+  return undefined;
 };
 
 export const ENTRY_LESS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
