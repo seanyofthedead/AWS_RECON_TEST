@@ -189,6 +189,7 @@ describe("fixture-grounded match evidence", () => {
     const rows = await provider.getCases();
     for (const row of rows) {
       const caseFile = await provider.getCase(row.caseId);
+      expect(caseFile.matchEvidence?.invoiceAmount, row.caseId).toBe(row.sourceRefs?.invoiceAmount);
       const result = evaluateThreeWayMatch(caseFile.matchEvidence);
       if (row.variance !== 0) {
         expect(result.status, row.caseId).not.toBe("pass");

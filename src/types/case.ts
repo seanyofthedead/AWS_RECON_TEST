@@ -67,6 +67,7 @@ export interface MatchEvidence {
   // Display aliases for the join IDs above; never used for comparison.
   displayInvoiceId?: string;
   displayPoNumber?: string;
+  invoiceAmount?: string;
   poAmount?: string;
   receiptAmount?: string;
   glAmount?: string;

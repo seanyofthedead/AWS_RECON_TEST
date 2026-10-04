@@ -9,7 +9,7 @@ Scope: mock provider only, Cognito sign-in unchanged. The work was done in a fre
 | Finding | Status | Change |
 | --- | --- | --- |
 | F01 Closure without financial resolution | Partially fixed | One rule set (`src/utils/closurePolicy.ts`) is enforced by the provider for all pages. Closing requires a rationale of at least 15 characters and evidence from the same case, and a failed match blocks it. A closure without a confirmed match is recorded as `DOCUMENTED_EXCEPTION` with the residual variance. There is still no posting or ledger acknowledgment step. |
-| F02 Three-way match is a reference check | Fixed for the demo | References and amounts are reported separately. A missing invoice PO reference no longer confirms itself. A missing receipt or GL document is inconclusive. PO, receipt, and GL amounts are compared, and an unexplained monetary variance keeps the result inconclusive. |
+| F02 Three-way match is a reference check | Fixed for the demo | References and amounts are reported separately. A missing invoice PO reference no longer confirms itself. A missing receipt or GL document is inconclusive. Invoice, PO, receipt, and GL amounts are compared, and an unexplained monetary variance keeps the result inconclusive. |
 | F03 Journal direction | Partially fixed | Duplicate reversal no longer flips with the variance sign. The variance sign convention still needs an accounting owner. |
 | F04 Operational fixes as journals | Fixed | Master data, reference data, wrong PO, wrong vendor, batch interface, and missing receipt now propose no journal. |
 | F05 Conversion error assumed FX | Fixed | No FX entry. The next steps ask for the conversion type first. |

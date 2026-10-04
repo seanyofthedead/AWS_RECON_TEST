@@ -10,6 +10,7 @@ const linked = {
   receiptPoNumber: "PO-1",
   glDocumentId: "GL-1",
   glInvoiceId: "INV-1",
+  invoiceAmount: "100.00",
   poAmount: "100.00",
   receiptAmount: "100.00",
   glAmount: "100.00",
@@ -29,6 +30,19 @@ describe("three-way match (acceptance check 1)", () => {
     expect(result.referenceStatus).toBe("pass");
     expect(result.amountStatus).toBe("fail");
     expect(result.status).toBe("fail");
+  });
+
+  it("fails when the invoice bills more than an agreeing PO, receipt, and GL", () => {
+    const result = evaluateThreeWayMatch({ ...linked, invoiceAmount: "120.00" });
+    expect(result.referenceStatus).toBe("pass");
+    expect(result.amountStatus).toBe("fail");
+    expect(result.status).toBe("fail");
+  });
+
+  it("stays inconclusive without the invoice amount", () => {
+    const result = evaluateThreeWayMatch({ ...linked, invoiceAmount: undefined });
+    expect(result.amountStatus).toBe("inconclusive");
+    expect(result.amountNote).toMatch(/invoice/);
   });
 
   it("does not let a missing invoice PO reference confirm itself", () => {

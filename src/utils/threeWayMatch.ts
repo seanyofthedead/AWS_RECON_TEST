@@ -6,7 +6,7 @@ export interface ThreeWayMatchResult {
   status: ThreeWayMatchStatus;
   // Reference links only: invoice -> PO, receipt -> PO, GL -> invoice.
   referenceStatus: ThreeWayMatchStatus;
-  // Economic check: PO, receipt, and GL amounts agree within tolerance.
+  // Economic check: invoice, PO, receipt, and GL amounts agree within tolerance.
   amountStatus: ThreeWayMatchStatus;
   invoiceNote: string;
   poNote: string;
@@ -49,6 +49,7 @@ const combine = (statuses: ThreeWayMatchStatus[]): ThreeWayMatchStatus => {
 
 const evaluateAmounts = (evidence: MatchEvidence) => {
   const amounts = [
+    { label: "invoice", cents: toCents(evidence.invoiceAmount) },
     { label: "PO", cents: toCents(evidence.poAmount) },
     { label: "receipt", cents: toCents(evidence.receiptAmount) },
     { label: "GL", cents: toCents(evidence.glAmount) }
@@ -65,7 +66,7 @@ const evaluateAmounts = (evidence: MatchEvidence) => {
   if (spread > AMOUNT_TOLERANCE_CENTS) {
     return {
       status: "fail" as const,
-      note: `Amounts disagree: PO ${evidence.poAmount}, receipt ${evidence.receiptAmount}, GL ${evidence.glAmount}.`
+      note: `Amounts disagree: invoice ${evidence.invoiceAmount}, PO ${evidence.poAmount}, receipt ${evidence.receiptAmount}, GL ${evidence.glAmount}.`
     };
   }
   const varianceCents = toCents(evidence.monetaryVariance);
@@ -73,12 +74,12 @@ const evaluateAmounts = (evidence: MatchEvidence) => {
     // Documents agree with each other, so they cannot explain the variance.
     return {
       status: "inconclusive" as const,
-      note: `PO, receipt, and GL amounts agree (${evidence.poAmount}), but the reported ${evidence.monetaryVariance} variance is not explained by them.`
+      note: `Invoice, PO, receipt, and GL amounts agree (${evidence.invoiceAmount}), but the reported ${evidence.monetaryVariance} variance is not explained by them.`
     };
   }
   return {
     status: "pass" as const,
-    note: `PO, receipt, and GL amounts agree (${evidence.poAmount}).`
+    note: `Invoice, PO, receipt, and GL amounts agree (${evidence.invoiceAmount}).`
   };
 };
 

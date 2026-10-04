@@ -460,6 +460,8 @@ const buildMatchEvidence = (
     vendorId: canonical.vendor_id,
     displayInvoiceId: canonical.invoice_id || undefined,
     displayPoNumber: canonical.po_number || undefined,
+    // The billed amount from the invoice source row.
+    invoiceAmount: transaction.sourceRefs?.invoiceAmount,
     poAmount: canonical.po_amount,
     receiptAmount: canonical.receipt_amount,
     glAmount: canonical.gl_amount,
