@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { inflateSync } from "node:zlib";
 import Papa from "papaparse";
@@ -108,5 +108,50 @@ describe("GL posting evidence documents", () => {
     }
     expect(mismatches).toEqual([]);
     expect(checked).toBeGreaterThan(250);
+  });
+
+  it("do not clip the start of their own content", () => {
+    const clipped: string[] = [];
+    const clip = /n ([\d.]+) [\d.]+ [\d.]+ [\d.]+ re W\*? n\nq\n1 0 0 1 ([\d.]+) [\d.]+ cm/g;
+    for (const caseDir of readdirSync(path.join(publicDir, "evidence"))) {
+      if (!/^CASE-\d{5}$/.test(caseDir)) continue;
+      for (const name of readdirSync(path.join(publicDir, "evidence", caseDir))) {
+        const text = pdfText(path.join(publicDir, "evidence", caseDir, name));
+        for (const [, clipX, originX] of text.matchAll(clip)) {
+          if (Number(originX) < Number(clipX)) clipped.push(`${caseDir}/${name}`);
+        }
+      }
+    }
+    expect(clipped).toEqual([]);
+  });
+
+  it("state the GL reconciliation note as a quantity difference, not dollars", () => {
+    const csv = readFileSync(path.join(publicDir, "data/canonical_variances.csv"), "utf8");
+    const rows = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true }).data;
+    const wrong: string[] = [];
+    for (const row of rows) {
+      const caseId = `CASE-${String(Number(row.TransactionID.slice(3)) - 1000000).padStart(5, "0")}`;
+      const file = path.join(publicDir, "evidence", caseId, "GL_Posting.pdf");
+      if (!existsSync(file)) continue;
+      const units = Number(row.Feeder_Qty) - Number(row.ERP_Qty);
+      const note = `( Quantity difference, feeder minus ERP: ${units} ${Math.abs(units) === 1 ? "unit" : "units"}.)`;
+      if (!pdfText(file).includes(note)) wrong.push(caseId);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it("draw no missing-glyph markers", () => {
+    // ReportLab draws a ZapfDingbats square (font F4) for characters its
+    // Helvetica encoding lacks, such as a non-breaking hyphen.
+    const marked: string[] = [];
+    for (const caseDir of readdirSync(path.join(publicDir, "evidence"))) {
+      if (!/^CASE-\d{5}$/.test(caseDir)) continue;
+      for (const name of readdirSync(path.join(publicDir, "evidence", caseDir))) {
+        if (/\/F4 [\d.]+ Tf/.test(pdfText(path.join(publicDir, "evidence", caseDir, name)))) {
+          marked.push(`${caseDir}/${name}`);
+        }
+      }
+    }
+    expect(marked).toEqual([]);
   });
 });

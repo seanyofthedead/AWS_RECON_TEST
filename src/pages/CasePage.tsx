@@ -276,7 +276,7 @@ export const CasePage = () => {
                 Variance
                 <InfoTooltip
                   label="Variance definition"
-                  text="Reported monetary variance from the source file. Its sign convention is not yet defined by an accounting owner."
+                  text="Reported monetary variance from the source file. Positive means the invoiced amount exceeds the amount posted to the GL; negative means more was posted than invoiced."
                 />
               </dt>
               <dd className="font-medium text-slate-900">
