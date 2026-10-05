@@ -64,12 +64,15 @@ export const SettingsPage = () => {
               name="provider"
               value="api"
               checked={provider === "api"}
-              onChange={() => setProvider("api")}
+              disabled
             />
-            <span>API provider (backend HTTP API)</span>
+            <span className="text-slate-400">
+              API provider (backend HTTP API) — not available in this build
+            </span>
           </label>
           <p className="text-xs text-slate-500">
-            API base URL: {import.meta.env.VITE_API_BASE_URL || "not configured (uses same-origin /api)"}
+            This build includes only the mock provider, so all cases are demo fixtures. Cognito
+            sign-in is live; business data is not.
           </p>
         </div>
       </section>

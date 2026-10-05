@@ -4,3 +4,4 @@ dist.tar
 dist.tar.b64
 .env.local
 .cursor/
+*.tsbuildinfo

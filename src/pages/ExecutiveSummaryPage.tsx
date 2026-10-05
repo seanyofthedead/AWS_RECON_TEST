@@ -17,6 +17,7 @@ import { getPrimaryRecommendation } from "../utils/recommendations";
 import { useInboxFiltersStore } from "../store/useInboxFiltersStore";
 import { BatchImportWorkflow } from "../components/BatchImportWorkflow";
 import { formatCurrency } from "../utils/formatCurrency";
+import { useToastStore } from "../store/toastStore";
 
 const statusOptions = [
   { value: "all", label: "All statuses" },
@@ -41,6 +42,7 @@ export const ExecutiveSummaryPage = () => {
   const dataProvider = useDataProvider();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const addToast = useToastStore((state) => state.addToast);
   const setRecommendedAction = useInboxFiltersStore((state) => state.setRecommendedAction);
   const setHasBookingEntry = useInboxFiltersStore((state) => state.setHasBookingEntry);
   const resetInboxFilters = useInboxFiltersStore((state) => state.resetFilters);
@@ -110,7 +112,7 @@ export const ExecutiveSummaryPage = () => {
       resolved: 0,
       escalated: 0
     };
-    const policy = { within: 0, above: 0 };
+    const policy = { within: 0, above: 0, noBasis: 0 };
     const varianceCounts = varianceBuckets.map((bucket) => ({ ...bucket, count: 0 }));
     const rootCauseCounts = new Map<string, number>();
 
@@ -127,8 +129,15 @@ export const ExecutiveSummaryPage = () => {
 
       const absVariance = Math.abs(row.variance);
       const amountBasis = Math.abs(row.amount);
-      const variancePercent = amountBasis > 0 ? (absVariance / amountBasis) * 100 : 0;
-      if (variancePercent > threshold) {
+      // A zero amount cannot be judged by percentage; a nonzero variance on it
+      // is an exception, never "within" the threshold.
+      if (amountBasis === 0) {
+        if (absVariance > 0) {
+          policy.noBasis += 1;
+        } else {
+          policy.within += 1;
+        }
+      } else if ((absVariance / amountBasis) * 100 > threshold) {
         policy.above += 1;
       } else {
         policy.within += 1;
@@ -147,7 +156,8 @@ export const ExecutiveSummaryPage = () => {
       rootCauseCounts.set(reason, (rootCauseCounts.get(reason) ?? 0) + 1);
     });
 
-    const processed = totals.reviewed + totals.resolved + totals.escalated;
+    // Escalations are unresolved work, so they do not count as processed.
+    const processed = totals.reviewed + totals.resolved;
     const processedPercent = totals.total > 0 ? (processed / totals.total) * 100 : 0;
 
       return {
@@ -195,7 +205,7 @@ export const ExecutiveSummaryPage = () => {
     const total = metrics.totals.total || 1;
     return [
       {
-        label: "Within policy",
+        label: "At or below threshold",
         value: metrics.policy.within,
         percentage: (metrics.policy.within / total) * 100,
         colorClass: "bg-emerald-500"
@@ -205,6 +215,12 @@ export const ExecutiveSummaryPage = () => {
         value: metrics.policy.above,
         percentage: (metrics.policy.above / total) * 100,
         colorClass: "bg-amber-500"
+      },
+      {
+        label: "No amount basis (exception)",
+        value: metrics.policy.noBasis,
+        percentage: (metrics.policy.noBasis / total) * 100,
+        colorClass: "bg-rose-500"
       }
     ];
   }, [metrics]);
@@ -277,9 +293,10 @@ export const ExecutiveSummaryPage = () => {
         };
         record.total += 1;
         const absAmount = Math.abs(row.amount);
-        const percentVariance =
-          absAmount > 0 ? (Math.abs(row.variance) / absAmount) * 100 : 0;
-        if (percentVariance > threshold) {
+        const absVariance = Math.abs(row.variance);
+        const exceeds =
+          absAmount > 0 ? (absVariance / absAmount) * 100 > threshold : absVariance > 0;
+        if (exceeds) {
           record.above += 1;
         }
         byVendor.set(row.vendor, record);
@@ -297,6 +314,9 @@ export const ExecutiveSummaryPage = () => {
       let withEntry = 0;
       filteredRows.forEach((row) => {
         const rec = getPrimaryRecommendation({ caseId: row.caseId, transaction: row });
+        if (!rec) {
+          return;
+        }
         counts.set(rec.title, (counts.get(rec.title) ?? 0) + 1);
         if (rec.bookingEntry) {
           withEntry += 1;
@@ -333,8 +353,15 @@ export const ExecutiveSummaryPage = () => {
     setInlineSuccessMessage(null);
     setLastImportCount(null);
     setIsImporting(true);
-    const result = await dataProvider.importNextBatch(nextId);
-    const importedCount = result.importedCount;
+    let importedCount: number;
+    try {
+      importedCount = (await dataProvider.importNextBatch(nextId)).importedCount;
+    } catch {
+      setIsImporting(false);
+      setInlineSuccessMessage(null);
+      addToast({ message: "Import failed. No cases were added; try again.", type: "error" });
+      return;
+    }
     setLastImportCount(importedCount);
     setInlineSuccessMessage(
       importedCount > 0
@@ -423,10 +450,10 @@ export const ExecutiveSummaryPage = () => {
         <div className="flex flex-wrap gap-4">
           <label className="flex flex-col gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             <span className="flex items-center gap-2">
-              Variance threshold (%)
+              Scenario threshold (%)
               <InfoTooltip
                 label="Threshold definition"
-                text="Percent variance that triggers review."
+                text="What-if percent variance threshold for this dashboard; not an approved policy."
               />
             </span>
             <input
@@ -570,9 +597,9 @@ export const ExecutiveSummaryPage = () => {
                 <KpiCard label="Resolved" value={formatNumber(metrics.totals.resolved)} />
                 <KpiCard label="Escalated" value={formatNumber(metrics.totals.escalated)} />
                 <KpiCard
-                  label="Processed to-date"
+                  label="Reviewed or closed"
                   value={formatNumber(metrics.processed)}
-                  helperText={`${metrics.processedPercent.toFixed(1)}% completed`}
+                  helperText={`${metrics.processedPercent.toFixed(1)}% of cases · escalations excluded`}
                 />
               </section>
 
@@ -604,7 +631,7 @@ export const ExecutiveSummaryPage = () => {
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white p-4">
                   <h3 className="text-sm font-semibold text-slate-900">
-                    Cases with booking entries
+                    Cases with illustrative entries
                   </h3>
                   <div className="mt-3 text-2xl font-semibold text-slate-900">
                     {formatNumber(recommendationRollup.withEntry)}
@@ -624,10 +651,10 @@ export const ExecutiveSummaryPage = () => {
                 <SimpleBarChart
                   title={
                     <span className="flex items-center gap-2">
-                      Policy check
+                      Scenario threshold check
                       <InfoTooltip
-                        label="Within policy definition"
-                        text="Within policy means variance at or below threshold."
+                        label="Scenario threshold definition"
+                        text="Compares absolute variance to the scenario threshold set above. This is not an approved materiality policy."
                       />
                     </span>
                   }

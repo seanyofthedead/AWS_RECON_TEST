@@ -34,4 +34,8 @@ export interface ReviewDecision extends ReviewRequestNormalized {
   caseId: string;
   reviewer: string;
   timestamp: string;
+  // Set on closures: whether the match was confirmed or the case was closed
+  // as a documented exception, and the variance still outstanding at closure.
+  disposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  residualVariance?: number;
 }

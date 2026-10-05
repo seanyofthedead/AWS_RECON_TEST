@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useDataProvider } from "../hooks/useDataProvider";
 import { StatusPill } from "../components/StatusPill";
 import { ConfidencePill } from "../components/ConfidencePill";
@@ -8,7 +8,6 @@ import { SkeletonTable } from "../components/SkeletonTable";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { InfoTooltip } from "../components/InfoTooltip";
-import { ConfirmModal } from "../components/ConfirmModal";
 import { CaseStatus, ConfidenceBand } from "../types/case";
 import { TransactionRow } from "../types/transaction";
 import { useInboxFiltersStore } from "../store/useInboxFiltersStore";
@@ -22,11 +21,7 @@ import { formatCurrency } from "../utils/formatCurrency";
 export const InboxPage = () => {
   useRoutePerf("Inbox");
   const dataProvider = useDataProvider();
-  const queryClient = useQueryClient();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [lastResolvedCaseId, setLastResolvedCaseId] = useState<string | null>(null);
-  const [confirmCaseId, setConfirmCaseId] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const addToast = useToastStore((state) => state.addToast);
   const hasErrorToasted = useRef(false);
   const defaultStatuses = [
@@ -90,45 +85,6 @@ export const InboxPage = () => {
     });
   }, [data]);
 
-  const reviewMutation = useMutation({
-    mutationFn: (caseId: string) =>
-      dataProvider.reviewCase(caseId, { decision: "ACCEPT", rationaleText: "" }),
-    onMutate: async (caseId) => {
-      await queryClient.cancelQueries({ queryKey: ["cases"] });
-      const previousCases = queryClient.getQueryData<TransactionRow[]>(["cases"]);
-      queryClient.setQueryData<TransactionRow[]>(["cases"], (current = []) =>
-        current.map((row) =>
-          row.caseId === caseId
-            ? { ...row, status: CaseStatus.Resolved, reviewed: true }
-            : row
-        )
-      );
-      return { previousCases };
-    },
-    onError: (_error, caseId, context) => {
-      if (context?.previousCases) {
-        queryClient.setQueryData(["cases"], context.previousCases);
-      }
-      addToast({ message: "Unable to resolve case. Try again.", type: "error" });
-      void queryClient.invalidateQueries({ queryKey: ["case", caseId] });
-    },
-    onSuccess: (_decision, caseId) => {
-      setLastResolvedCaseId(caseId);
-      addToast({ message: "Case resolved", type: "success" });
-      queryClient.setQueryData<TransactionRow[]>(["cases"], (current = []) =>
-        current.map((row) =>
-          row.caseId === caseId
-            ? { ...row, status: CaseStatus.Resolved, reviewed: true }
-            : row
-        )
-      );
-      void queryClient.invalidateQueries({ queryKey: ["case", caseId] });
-    },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ["cases"] });
-    }
-  });
-
   useEffect(() => {
     if (error) {
       if (!hasErrorToasted.current) {
@@ -147,6 +103,9 @@ export const InboxPage = () => {
     >();
     data.forEach((row) => {
       const rec = getPrimaryRecommendation({ caseId: row.caseId, transaction: row });
+      if (!rec) {
+        return;
+      }
       map.set(row.caseId, {
         title: rec.title,
         nextStep: rec.title,
@@ -172,25 +131,6 @@ export const InboxPage = () => {
     setRecommendedAction("all");
     setHasBookingEntry("all");
     setFiltersOpen(true);
-  };
-
-  const handleQuickResolveClick = (caseId: string) => {
-    setConfirmCaseId(caseId);
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmResolve = () => {
-    if (!confirmCaseId) {
-      return;
-    }
-    reviewMutation.mutate(confirmCaseId);
-    setConfirmOpen(false);
-    setConfirmCaseId(null);
-  };
-
-  const handleCloseConfirm = () => {
-    setConfirmOpen(false);
-    setConfirmCaseId(null);
   };
 
   const isHighConfidence = (score: number) => score >= 0.82;
@@ -578,10 +518,10 @@ export const InboxPage = () => {
               <th scope="col" className="px-4 py-3">Status</th>
               <th scope="col" className="px-4 py-3 text-right">
                 <span className="flex items-center justify-end gap-2">
-                  Close (posting-ready)
+                  Close
                   <InfoTooltip
                     label="Close case helper"
-                    text="Closes the case with a posting-ready recommendation for approval; does not auto-post."
+                    text="Closing requires a rationale and attached evidence on the case page; it does not post any entry."
                   />
                 </span>
               </th>
@@ -617,16 +557,8 @@ export const InboxPage = () => {
                 const showQuickResolve =
                   rowBand === ConfidenceBand.High &&
                   row.status === CaseStatus.ScreenedUnresolved;
-                const highlightResolved =
-                  row.caseId === lastResolvedCaseId &&
-                  row.status !== CaseStatus.ScreenedUnresolved;
                 return (
-                  <tr
-                    key={row.caseId}
-                    className={`hover:bg-slate-50 ${
-                      highlightResolved ? "bg-emerald-50/60" : ""
-                    }`}
-                  >
+                  <tr key={row.caseId} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium text-slate-900">
                       <Link
                         to={`/cases/${row.caseId}`}
@@ -659,16 +591,14 @@ export const InboxPage = () => {
                     <td className="px-4 py-3 text-right">
                       {showQuickResolve ? (
                         <div className="flex flex-col items-end gap-1">
-                          <button
-                            type="button"
-                            className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-                            onClick={() => handleQuickResolveClick(row.caseId)}
-                            disabled={reviewMutation.isPending}
+                          <Link
+                            to={`/cases/${row.caseId}?decision=CLOSE_AS_RESOLVED`}
+                            className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
                           >
-                            Close as Resolved
-                          </button>
+                            Review to close
+                          </Link>
                           <span className="text-[10px] text-slate-500">
-                            Closes with posting-ready recommendation; no auto-post.
+                            Needs rationale and evidence; no auto-post.
                           </span>
                         </div>
                       ) : (
@@ -682,20 +612,6 @@ export const InboxPage = () => {
           </tbody>
         </table>
       </div>
-
-      <ConfirmModal
-        isOpen={confirmOpen}
-        title="Close case as resolved?"
-        bullets={[
-          "Moves case to Resolved and records reviewer decision",
-          "Keeps posting as a controlled step (approval / posting workflow-ready)"
-        ]}
-        confirmLabel="Close as Resolved"
-        cancelLabel="Cancel"
-        onConfirm={handleConfirmResolve}
-        onClose={handleCloseConfirm}
-        isConfirming={reviewMutation.isPending}
-      />
     </div>
   );
 };
