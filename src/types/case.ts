@@ -91,4 +91,6 @@ export interface CaseFile {
   // True when an analyst decision closed the case, as opposed to fixture data.
   closedByAnalyst?: boolean;
   residualVariance?: number;
+  // Number of recorded decisions; used to reject decisions made on a stale view.
+  version?: number;
 }

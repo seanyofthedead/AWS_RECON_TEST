@@ -31,7 +31,16 @@ export type BookingEntry = {
   memo: string;
   lines: BookingEntryLine[];
   effectiveDate?: string;
+  // Posting period (YYYY-MM): the first open period on or after the service period.
   period?: string;
+  // Period in which the underlying activity happened.
+  servicePeriod?: string;
+  servicePeriodBasis?: "service date" | "posting date";
+  fiscalYear?: number;
+  // True when the service period is closed and the entry posts later.
+  priorPeriodAdjustment?: boolean;
+  // Scheduled reversal for accruals.
+  reversal?: { period: string; date: string };
 };
 
 export type Recommendation = {

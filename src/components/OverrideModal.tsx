@@ -58,7 +58,8 @@ export const OverrideModal = ({
         decisionType,
         reasonCode,
         rationale,
-        evidenceIds: selectedEvidence
+        evidenceIds: selectedEvidence,
+        expectedVersion: caseFile.version
       }),
     onSuccess: () => {
       onSuccess(`Decision submitted for ${caseFile.caseId}.`, decisionType);

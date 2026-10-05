@@ -9,14 +9,12 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit --incremental false && tsc -p tsconfig.test.json --noEmit --incremental false",
-    "generate:evidence": "node scripts/generate-demo-evidence.mjs --limit 30",
-    "generate:evidence:clean": "node scripts/generate-demo-evidence.mjs --clean --limit 30"
+    "evidence:manifest": "node scripts/build-evidence-manifest.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.0",
     "oidc-client-ts": "^3.4.1",
     "papaparse": "^5.4.1",
-    "pdfkit": "^0.17.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-oidc-context": "^3.3.0",

@@ -6,6 +6,7 @@ import { SignOutButton } from "./auth/SignOutButton";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import { markRouteStart } from "./utils/perf";
 import { useDataProvider } from "./hooks/useDataProvider";
+import { useAuth } from "react-oidc-context";
 
 const ExecutiveSummaryPage = lazy(() =>
   import("./pages/ExecutiveSummaryPage").then((module) => ({
@@ -43,6 +44,15 @@ export const App = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const dataProvider = useDataProvider();
+  const auth = useAuth();
+  const profile = auth.user?.profile;
+
+  // Decisions record the signed-in user rather than a fixed demo name.
+  useEffect(() => {
+    dataProvider.setActor(
+      profile ? { id: profile.sub, name: profile.email ?? profile.preferred_username ?? profile.sub } : null
+    );
+  }, [dataProvider, profile]);
 
   useEffect(() => {
     markRouteStart(location.pathname);
