@@ -25,7 +25,7 @@ Scope: mock provider only, Cognito sign-in unchanged. The work was done in a fre
 | F20 Dashboard completion | Partially fixed | "Reviewed or closed" excludes escalations. The Resolved page shows the recorded disposition, and seeded closures are labeled "Seeded demo closure". |
 | F21 Provider switching | Fixed for this build | Only the mock provider exists in committed source, so the API option is disabled and a saved `api` selection is reset to mock. Namespacing query keys by provider is still needed once an API adapter lands. |
 | F24 No regression suite | Started | Vitest suite in `tests/` (`npm test`) covering acceptance checks 1, 2, 3 (in part), 4, 5, and 7. |
-| F07, F12, F17 (in part), F18, F19, F22, F23 | Open | Not in the first tier. |
+| F07, F12, F17 (in part), F18, F19, F22, F23 | See second tier | Addressed in [2026-10-05-second-tier-fixes.md](2026-10-05-second-tier-fixes.md). |
 
 ## Observable changes in the demo
 
