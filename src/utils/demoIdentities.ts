@@ -58,7 +58,7 @@ export const VENDOR_DISPLAY_NAMES = [
   "HPE Federal",
   "IBM Federal",
   "Accenture Federal Services",
-  "Deloitte Consulting LLP"
+  "Boeing"
 ];
 
 const txIdCache = new Map<number, string>();

@@ -67,7 +67,7 @@ export const App = () => {
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">Agentic Reconciliation</h1>
               <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                USCG CIP · Demo
+                FEMA · Demo
               </span>
             </div>
             <p className="text-sm text-slate-600">

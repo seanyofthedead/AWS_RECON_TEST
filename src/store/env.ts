@@ -13,7 +13,7 @@ interface EnvState {
   setSearchTerm: (value: string) => void;
 }
 
-const defaultProvider: ProviderMode = import.meta.env.VITE_API_BASE_URL ? "api" : "mock";
+const defaultProvider: ProviderMode = "mock";
 
 export const useEnvStore = create<EnvState>()(
   persist(
