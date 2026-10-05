@@ -52,6 +52,6 @@ The API does not serve this app. It is either the other app's backend or one tha
 
 ## Remaining items
 
-- `amplify-dist.zip` was rebuilt from current source on October 5, 2026 (entry chunk `assets/index-CLlblRc_.js`). It has no badge and no `s9ka7orxaj` URL. The live site keeps serving the old bundle (`assets/index-CycBS08t.js`, with `FEMA · Demo`) until the new ZIP is uploaded to Amplify.
+- `amplify-dist.zip` was rebuilt from current source on October 5, 2026 (entry chunk `assets/index-CHZfZPeG.js`). It has no badge and no `s9ka7orxaj` URL. The live site keeps serving the old bundle (`assets/index-CycBS08t.js`, with `FEMA · Demo`) until the new ZIP is uploaded to Amplify.
 - The deployed bundle also bakes in `VITE_APP_REDIRECT_SIGN_IN_LOCAL=http://localhost:5175/`, which came from an uncommitted local env file.
 - Confirm in the AWS console that the pool, the Amplify app, and the API sit in the intended account, and decide whether to delete API `s9ka7orxaj` if nothing else uses it.

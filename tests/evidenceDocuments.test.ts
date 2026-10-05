@@ -72,4 +72,41 @@ describe("GL posting evidence documents", () => {
     }
     expect(checked).toBe(2);
   });
+
+  it("show the source amounts on every case's invoice, PO, and GL documents", () => {
+    const csv = readFileSync(path.join(publicDir, "data/canonical_variances.csv"), "utf8");
+    const rows = Papa.parse<Record<string, string>>(csv, { header: true, skipEmptyLines: true }).data;
+    const mismatches: string[] = [];
+    let checked = 0;
+    for (const row of rows) {
+      const caseId = `CASE-${String(Number(row.TransactionID.slice(3)) - 1000000).padStart(5, "0")}`;
+      const expected: Array<[string, string | undefined]> = [
+        ["Invoice.pdf", row.Amount],
+        ["Purchase_Order.pdf", row.po_amount],
+        ["GL_Posting.pdf", row.gl_amount]
+      ];
+      for (const [name, amount] of expected) {
+        const file = path.join(publicDir, "evidence", caseId, name);
+        if (!amount || !existsSync(file)) continue;
+        checked += 1;
+        const text = pdfText(file);
+        if (!text.includes(`(${money(amount)})`)) {
+          mismatches.push(`${caseId}/${name} lacks ${money(amount)}`);
+        }
+        // Some unit price on the invoice or PO must explain its total
+        // (quantity is the feeder quantity; prices are rounded to cents).
+        const qty = Number(row.Feeder_Qty);
+        if (name !== "GL_Posting.pdf" && qty > 0) {
+          const prices = [...text.matchAll(/\(\$([\d,]+\.\d\d)\)/g)].map((m) =>
+            Number(m[1].replace(/,/g, ""))
+          );
+          if (!prices.some((price) => Math.abs(price * qty - Number(amount)) <= qty * 0.005 + 0.01)) {
+            mismatches.push(`${caseId}/${name} has no unit price for ${qty} x ${money(amount)}`);
+          }
+        }
+      }
+    }
+    expect(mismatches).toEqual([]);
+    expect(checked).toBeGreaterThan(250);
+  });
 });
