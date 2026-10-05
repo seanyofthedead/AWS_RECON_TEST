@@ -72,19 +72,19 @@
 
 *(Click the **High confidence open** quick-focus button.)*
 
-> Let me focus on those. Every row here has a posting-ready recommendation already prepared.
+> Let me focus on those. Every row here has a recommendation already prepared.
 
-*(Pick the top row. Click **Close as Resolved**. The confirmation dialog appears.)*
+*(Pick the top row. Click **Review to close**. The case page opens with the decision form already showing "Close as resolved".)*
 
-> I'll close this one. Notice what it asks me to confirm: it records who decided, and it keeps the actual posting as a separate, controlled step. The AI prepares the entry; a person stays in command of the books.
+> I'll close this one. Notice what it asks for: a reason, a short rationale, and the evidence that supports closing. It records who decided, and posting stays a separate, controlled step. The AI prepares the case; a person stays in command of the books.
 
-*(Click **Close as Resolved** in the dialog. A "Case resolved" confirmation appears; the row highlights green.)*
+*(Type a short rationale — at least 15 characters, e.g. "Invoice, PO and receipt agree." Tick at least one evidence document. Click **Submit decision**. A success message appears.)*
 
-> Done — a case that used to take a reviewer fifteen minutes, closed in seconds, with a full record.
+> Done — a case that used to take a reviewer fifteen minutes, closed in a minute, with a full record.
 
-*(Repeat once on another high-confidence row: **Close as Resolved** → confirm.)*
+*(Click **Inbox** in the breadcrumb at the top of the case page to return to the queue.)*
 
-> And again. The queue shrinks in real time, and every close is captured for audit.
+> Back in the queue, that case is gone. Every close is captured for audit.
 
 ---
 
@@ -92,7 +92,7 @@
 
 *(Click **Resolved** in the top navigation.)*
 
-> Here's where those cases just landed. A moment ago this screen was empty — now it shows what we closed: vendor, how it was resolved, confidence, and a timestamp. This is the audit trail. For an organization answering to inspectors general, that matters — every closed case is searchable by vendor, case, or date, and every one links back to its evidence. Nothing is closed in the dark.
+> Here's where that case just landed. A moment ago this screen was empty — now it shows what we closed: vendor, how it was resolved, confidence, and a timestamp. This is the audit trail. For an organization answering to inspectors general, that matters — every closed case is searchable by vendor, case, or date, and every one links back to its evidence. Nothing is closed in the dark.
 
 ---
 
@@ -100,7 +100,7 @@
 
 > Not every case is easy — and that's where the real value is.
 
-*(Open case **CASE-TX-1000092** — via the Inbox or the address bar.)*
+*(Open case **CASE-00092** — via the Inbox or the address bar at `/cases/CASE-00092`.)*
 
 > This is a single case workspace — the whole story on one screen.
 
@@ -108,9 +108,9 @@
 
 > At the top, the system's recommendation, its reasoning, and its confidence in that recommendation.
 
-*(Point to the "Posting-ready entry (for review)" table.)*
+*(Point to the "Illustrative adjustment (not posting-ready)" table.)*
 
-> It's even drafted the accounting entry — debit, credit, amount. But the label says "for review." It's a proposal, not an action.
+> It even sketches the adjusting entry — debit, credit, amount. But the label says "not posting-ready." It's a proposal for finance to validate, not an action.
 
 *(Point to the Status card and the low match confidence.)*
 
@@ -120,9 +120,9 @@
 
 > Underneath, the reviewer has everything: the source documents with a three-way match across them, and a Conflicts tab spelling out exactly what doesn't line up.
 
-*(Point to the Accept / Override / Escalate buttons.)*
+*(Point to the Close case / Override / Escalate buttons.)*
 
-> Three clear choices — accept, override, or escalate. The system did the assembly and the analysis; the decision stays with a person, and every path is recorded.
+> Three clear choices — close, override, or escalate. The system did the assembly and the analysis; the decision stays with a person, and every path is recorded.
 
 ---
 
@@ -162,14 +162,14 @@
 
 *(Click **Executive Summary**. Let the KPI cards fill the screen.)*
 
-> So: intelligent triage by risk and dollar exposure. High-confidence cases closed in seconds with a full audit trail. Hard cases escalated with a complete packet. And a system honest enough to tell you when it isn't sure. For FEMA, that's faster reconciliation, stronger accountability for every relief dollar, and an audit trail that holds up. We're ready for a pilot whenever you are. I'll take your questions.
+> So: intelligent triage by risk and dollar exposure. High-confidence cases closed in a minute with a full audit trail. Hard cases escalated with a complete packet. And a system honest enough to tell you when it isn't sure. For FEMA, that's faster reconciliation, stronger accountability for every relief dollar, and an audit trail that holds up. We're ready for a pilot whenever you are. I'll take your questions.
 
 ---
 
 ## "If asked" — Q&A appendix *(not read aloud)*
 
 **1. "Does the AI actually post entries to our accounting system?"**
-> No. The system *prepares* a posting-ready entry and flags it "for review." A person always confirms, and the actual posting stays a separate, controlled step. The AI assembles and recommends; it never acts on the books on its own.
+> No. The system *sketches* an adjusting entry and labels it "not posting-ready." A person always confirms, and the actual posting stays a separate, controlled step. The AI assembles and recommends; it never acts on the books on its own.
 
 **2. "How do we know the AI isn't just wrong with confidence?"**
 > Every recommendation carries an explicit confidence level, and low-confidence cases are routed to a human instead of being auto-closed — you saw that in the hard case. The system is built to say "I'm not sure" out loud, and every closed case links back to the underlying evidence.

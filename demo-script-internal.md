@@ -56,21 +56,21 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 *(Click the **High confidence open** quick-focus button to filter the table.)*
 
-- **Say:** "Let me focus on those. Every row here has a posting-ready recommendation already prepared."
+- **Say:** "Let me focus on those. Every row here has a recommendation already prepared."
 
-*(Pick the top row. Click the **Close as Resolved** button on that row. A confirmation dialog opens.)*
+*(Pick the top row. Click **Review to close** on that row. The case page opens with the decision form already set to "Close as resolved".)*
 
-- **Say:** "Confirmation dialog records who decided. Posting to the actual ledger is a separate, controlled step — the AI prepares, a person commits."
+- **Say:** "Closing needs a reason, a rationale and supporting evidence, and it records who decided. Posting to the actual ledger is a separate, controlled step — the AI prepares, a person commits."
 
-*(Click **Close as Resolved** inside the dialog. The row flashes green and disappears from the queue; the Resolved counter ticks up.)*
+*(Type a rationale of at least 15 characters, e.g. "Invoice, PO and receipt agree." Tick at least one evidence document. Click **Submit decision**. A success message appears.)*
 
-- **Say:** "Done. A case that used to take fifteen minutes is closed in seconds, with a full audit record."
+- **Say:** "Done. A case that used to take fifteen minutes is closed in a minute, with a full audit record."
 
-*(Repeat on one more high-confidence row: click **Close as Resolved**, then confirm in the dialog.)*
+*(Click **Inbox** in the breadcrumb at the top of the case page. The closed case is no longer in the queue.)*
 
-- **Say:** "And again. The queue shrinks in real time."
+- **Say:** "Back in the queue, that case is gone."
 
-- **Notice:** Closing is optimistic — the UI updates instantly, then persists via the data provider.
+- **Notice:** The form blocks submission until the rationale and evidence requirements are met; a failed three-way match also blocks closing.
 
 ---
 
@@ -78,9 +78,9 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 *(Click **Resolved** in the top navigation.)*
 
-- **Say:** "A moment ago this was empty. Now it shows the two we just closed: vendor, resolution, confidence, timestamp."
+- **Say:** "A moment ago this was empty. Now it shows the case we just closed: vendor, resolution, confidence, timestamp."
 
-*(Point to the table rows — specifically the two cases just closed.)*
+*(Point to the table rows — specifically the case just closed.)*
 
 - **Say:** "Searchable by vendor, case, or date. Every row links back to its evidence — nothing closes in the dark."
 
@@ -90,7 +90,7 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 ## Step 4 — Inside a hard case: the workspace
 
-*(Paste `https://staging.d30lp656izv8a2.amplifyapp.com/cases/CASE-TX-1000092` into the address bar and press Enter. Or, navigate from the Inbox and click into the same case.)*
+*(Paste `https://staging.d30lp656izv8a2.amplifyapp.com/cases/CASE-00092` into the address bar and press Enter. Or, navigate from the Inbox and click into the same case.)*
 
 - **Say:** "This is a single case workspace — the whole story on one screen."
 
@@ -98,9 +98,9 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 - **Say:** "Top card: the system's recommendation, its reasoning, its confidence."
 
-*(Point to the **Posting-ready entry (for review)** table directly below the recommendation.)*
+*(Point to the **Illustrative adjustment (not posting-ready)** table directly below the recommendation.)*
 
-- **Say:** "A drafted posting entry — debit, credit, amount — labeled 'for review.' It's a proposal, not an action."
+- **Say:** "An illustrative adjusting entry — debit, credit, amount — labeled 'not posting-ready.' It's a proposal for finance to validate, not an action."
 
 *(Point to the Status card and the low match-confidence value.)*
 
@@ -114,9 +114,9 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 - **Say:** "Conflicts tab: exactly what doesn't line up, called out explicitly."
 
-*(Point to the **Accept**, **Override**, and **Escalate** buttons at the bottom of the page — do not click them.)*
+*(Point to the **Close case**, **Override**, and **Escalate** buttons at the top of the page — do not click them.)*
 
-- **Say:** "Three actions: Accept, Override, Escalate. Decision and path are both recorded."
+- **Say:** "Three actions: Close, Override, Escalate. Decision and path are both recorded."
 
 - **Notice:** Recommendation, evidence, and conflicts are all on one screen — no tab-hopping to chase paperwork.
 

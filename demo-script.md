@@ -14,7 +14,7 @@ Every large company has a version of this problem. Thousands of invoices arrive 
 
 [SHOW: Executive Summary page with KPI cards and charts visible]
 
-Think of this as an intelligent triage desk for your finance team. An AI agent ingests every transaction, pulls the invoice, the purchase order, and the receipt, checks whether the numbers line up, and assigns a confidence score — essentially telling your team "I am 92% sure this one is fine" or "this one has a problem and here is why." High-confidence matches can be closed in a single click. The ones that need a human get routed to a reviewer with all the supporting documents already assembled. Instead of analysts spending their day hunting for paperwork, they spend it making decisions. The net effect: faster close cycles, fewer errors, and your most experienced people focused on the exceptions that actually require judgment.
+Think of this as an intelligent triage desk for your finance team. An AI agent ingests every transaction, pulls the invoice, the purchase order, and the receipt, checks whether the numbers line up, and assigns a confidence score — essentially telling your team "I am 92% sure this one is fine" or "this one has a problem and here is why." High-confidence matches can be closed in a minute, with the reviewer's rationale and evidence on record. The ones that need a human get routed to a reviewer with all the supporting documents already assembled. Instead of analysts spending their day hunting for paperwork, they spend it making decisions. The net effect: faster close cycles, fewer errors, and your most experienced people focused on the exceptions that actually require judgment.
 
 ---
 
@@ -30,7 +30,7 @@ This is the executive view. At a glance you can see how many cases are open, how
 
 [SHOW: Inbox page with the high-confidence open banner and case table visible]
 
-Here is the working queue. Every row is a case, and the system has already done the heavy lifting — it shows the vendor, the dollar variance, the AI's best explanation for why the numbers don't match, and a recommended next step. See this green banner? It is telling us there are high-confidence cases ready to close right now. One click, confirmation, done. That is a case that used to take fifteen minutes of an analyst's day resolved in seconds.
+Here is the working queue. Every row is a case, and the system has already done the heavy lifting — it shows the vendor, the dollar variance, the AI's best explanation for why the numbers don't match, and a recommended next step. See this green banner? It is telling us there are high-confidence cases ready to close right now. Open one, confirm the rationale and evidence, done. That is a case that used to take fifteen minutes of an analyst's day resolved in a minute.
 
 **Moment 3 — The Case Workspace**
 
