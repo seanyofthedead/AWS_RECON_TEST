@@ -549,6 +549,9 @@ const readDecisions = (): ReviewDecision[] => {
   }
 };
 
+const caseVersion = (caseId: string) =>
+  readDecisions().filter((decision) => decision.caseId === caseId).length;
+
 const writeDecisions = (decisions: ReviewDecision[]) => {
   localStorage.setItem(REVIEW_STORAGE_KEY, JSON.stringify(decisions));
 };
@@ -583,6 +586,7 @@ export class MockDataProvider implements DataProvider {
   private canonicalByTxId = new Map<string, CanonicalVarianceRow>();
   private importedBatches = new Map<number, ImportedBatch>();
   private ingestionReports = new Map<string, IngestionReport>();
+  private actor: { id: string; name: string } | null = null;
 
   static getInstance() {
     if (!MockDataProvider.instance) {
@@ -982,13 +986,21 @@ export class MockDataProvider implements DataProvider {
     return this.transactions;
   }
 
+  // The signed-in user recorded on decisions. Browser storage is not an
+  // authoritative audit trail; a server must bind identity to decisions.
+  setActor(actor: { id: string; name: string } | null) {
+    this.actor = actor;
+  }
+
   async getCase(caseId: string) {
     await this.initialize();
     const transaction = this.transactions.find((item) => item.caseId === caseId);
     if (!transaction) {
       throw new Error("Case not found.");
     }
-    return this.getCaseFromTransaction(transaction);
+    const caseFile = await this.getCaseFromTransaction(transaction);
+    caseFile.version = caseVersion(caseId);
+    return caseFile;
   }
 
   async reviewCase(caseId: string, request: ReviewRequest) {
@@ -997,7 +1009,13 @@ export class MockDataProvider implements DataProvider {
     if (transactionIndex === -1) {
       throw new Error("Case not found.");
     }
-    const normalizedRequest = this.normalizeReviewRequest(request);
+    const { expectedVersion, ...normalizedRequest } = this.normalizeReviewRequest(request);
+    // Decisions are re-read from storage, so another tab's decision is seen.
+    if (expectedVersion !== undefined && expectedVersion !== caseVersion(caseId)) {
+      throw new Error(
+        "This case changed since you opened it: another tab or user recorded a decision. Reload the case and try again."
+      );
+    }
     const transaction = this.transactions[transactionIndex];
     const caseFile = await this.getCaseFromTransaction(transaction);
     const check = evaluateDecision({
@@ -1013,7 +1031,8 @@ export class MockDataProvider implements DataProvider {
     const decision: ReviewDecision = {
       caseId,
       ...normalizedRequest,
-      reviewer: "UI Analyst",
+      reviewer: this.actor?.name ?? "Unidentified user",
+      ...(this.actor ? { reviewerId: this.actor.id } : {}),
       timestamp,
       ...(normalizedRequest.decisionType === "CLOSE_AS_RESOLVED"
         ? { disposition: check.disposition, residualVariance: transaction.variance }
@@ -1041,6 +1060,7 @@ export class MockDataProvider implements DataProvider {
     caseFile.closureDisposition = isClosed ? decision.disposition : undefined;
     caseFile.closedByAnalyst = isClosed;
     caseFile.residualVariance = isClosed ? decision.residualVariance : undefined;
+    caseFile.version = caseVersion(caseId);
     this.cases.set(caseId, caseFile);
     return decision;
   }

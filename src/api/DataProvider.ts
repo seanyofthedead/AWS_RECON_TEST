@@ -15,6 +15,8 @@ export interface DataProvider {
     claimId: string;
     evidenceId: string;
   }): Promise<{ ok: boolean }>;
+  // Signed-in user recorded on decisions (null when signed out).
+  setActor(actor: { id: string; name: string } | null): void;
   // Row-level load report ("baseline", or "batch-1" once imported).
   getIngestionReport(source?: string): IngestionReport;
   importNextBatch(
