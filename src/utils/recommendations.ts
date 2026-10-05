@@ -1,3 +1,4 @@
+import { schedulePosting } from "./fiscalCalendar";
 import { hashString } from "./hash";
 import { getRootCauseLabel } from "./rootCause";
 import { TransactionRow } from "../types/transaction";
@@ -15,7 +16,7 @@ type RecommendationInput = {
 };
 
 // Bump when templates change so cached recommendations are recomputed.
-export const RULES_VERSION = "2026-10-04.2";
+export const RULES_VERSION = "2026-10-05";
 
 const STORAGE_KEY_PROPOSED = "recon_recommendation_proposed_v1";
 const STORAGE_KEY_ESCALATION = "recon_recommendation_escalation_v1";
@@ -64,16 +65,10 @@ const writeStorageMap = (key: string, map: Record<string, string>) => {
   storage.setItem(key, JSON.stringify(map));
 };
 
-const formatPeriod = (dateValue?: string) => {
-  if (!dateValue) {
-    return undefined;
-  }
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-};
+const validDate = (dateValue?: string) =>
+  dateValue && /^\d{4}-\d{2}-\d{2}/.test(dateValue) && !Number.isNaN(Date.parse(dateValue))
+    ? dateValue.slice(0, 10)
+    : undefined;
 
 const buildMemo = (base: string, transaction?: TransactionRow) => {
   if (!transaction) {
@@ -87,8 +82,8 @@ const buildEntry = (options: {
   creditAccount: string;
   amount: number;
   memo: string;
-  effectiveDate?: string;
-  period?: string;
+  serviceDate?: string;
+  accrual?: boolean;
   reverse?: boolean;
 }): BookingEntry => {
   const amount = Math.abs(options.amount);
@@ -96,8 +91,7 @@ const buildEntry = (options: {
   const credit = options.reverse ? options.debitAccount : options.creditAccount;
   return {
     memo: options.memo,
-    effectiveDate: options.effectiveDate,
-    period: options.period,
+    ...(options.serviceDate ? schedulePosting(options.serviceDate, Boolean(options.accrual)) : {}),
     lines: [
       { direction: "DEBIT", account: debit, amount },
       { direction: "CREDIT", account: credit, amount }
@@ -191,6 +185,8 @@ const makeBookedTemplate = (config: {
   // Corrections whose direction follows from the original posting (e.g.
   // reversing a duplicate) must not flip with the variance sign.
   fixedDirection?: boolean;
+  // Accruals are reversed in the following period.
+  accrual?: boolean;
 }): TemplateBuilder => {
   return (input) => {
     const amount = input.transaction?.variance ?? 0;
@@ -203,8 +199,8 @@ const makeBookedTemplate = (config: {
         creditAccount: config.creditAccount,
         amount,
         memo: buildMemo(config.title, input.transaction),
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
+        serviceDate: validDate(input.transaction?.postingDate),
+        accrual: config.accrual,
         reverse: !config.fixedDirection && amount < 0
       }),
       confidence: confidenceForCategory(config.category),
@@ -245,7 +241,8 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
       "Schedule reversal next period"
     ],
     debitAccount: accountMap.expense,
-    creditAccount: accountMap.accrued
+    creditAccount: accountMap.accrued,
+    accrual: true
   }),
   DUPLICATE: makeBookedTemplate({
     category: "DUPLICATE",
@@ -414,7 +411,8 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
       "Schedule reversal next period"
     ],
     debitAccount: accountMap.expense,
-    creditAccount: accountMap.accrued
+    creditAccount: accountMap.accrued,
+    accrual: true
   }),
   MISCODED_ACCOUNT: makeBookedTemplate({
     category: "MISCODED_ACCOUNT",
@@ -542,8 +540,11 @@ export const formatBookingEntry = (entry: BookingEntry) => {
     .map((line) => `${line.direction}: ${line.account} ${line.amount.toFixed(2)}`)
     .join("\n");
   const meta = [
-    entry.period ? `Period: ${entry.period}` : null,
-    entry.effectiveDate ? `Date: ${entry.effectiveDate}` : null
+    entry.servicePeriod ? `Service period: ${entry.servicePeriod}` : null,
+    entry.period ? `Posting period: ${entry.period} (FY${entry.fiscalYear})` : null,
+    entry.effectiveDate ? `Effective: ${entry.effectiveDate}` : null,
+    entry.priorPeriodAdjustment ? "Prior-period adjustment: requires approval" : null,
+    entry.reversal ? `Reversal: ${entry.reversal.date}` : null
   ]
     .filter(Boolean)
     .join(" · ");

@@ -32,10 +32,25 @@ export const BookingEntryTable = ({ entry }: BookingEntryTableProps) => {
           </tbody>
         </table>
       </div>
-      <div className="mt-2 text-xs text-slate-500">
-        Memo: {entry.memo}
-        {entry.period ? ` · Period: ${entry.period}` : ""}
-        {entry.effectiveDate ? ` · Date: ${entry.effectiveDate}` : ""}
+      <div className="mt-2 space-y-1 text-xs text-slate-500">
+        <div>Memo: {entry.memo}</div>
+        {entry.period ? (
+          <div>
+            Service period {entry.servicePeriod} · Posting period {entry.period} (FY
+            {entry.fiscalYear}) · Effective {entry.effectiveDate}
+          </div>
+        ) : null}
+        {entry.priorPeriodAdjustment ? (
+          <div className="text-amber-800">
+            Service period {entry.servicePeriod} is closed, so this posts in {entry.period} as a
+            prior-period adjustment and needs approval. Period status comes from a demo calendar.
+          </div>
+        ) : null}
+        {entry.reversal ? (
+          <div>
+            Reversal scheduled for {entry.reversal.date} (period {entry.reversal.period}).
+          </div>
+        ) : null}
       </div>
     </div>
   );
