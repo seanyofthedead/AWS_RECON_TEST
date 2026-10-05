@@ -59,6 +59,8 @@ interface CanonicalVarianceRow {
   po_amount?: string;
   receipt_amount?: string;
   gl_amount?: string;
+  feeder_qty?: string;
+  erp_qty?: string;
 }
 
 const REVIEW_STORAGE_KEY = "recon_review_decisions_v1";
@@ -276,6 +278,12 @@ const mapTransactionRow = (
 
   const transaction: TransactionRow = {
     transactionId: displayTransactionId,
+    sourceTransactionId: normalizedTxId,
+    sourceVendorId: rawVendor,
+    quantityDelta:
+      canonicalMatch?.feeder_qty && canonicalMatch?.erp_qty
+        ? Number(canonicalMatch.feeder_qty) - Number(canonicalMatch.erp_qty)
+        : undefined,
     postingDate,
     vendor,
     amount,
@@ -448,7 +456,7 @@ const buildMatchEvidence = (
   canonical: CanonicalVarianceRow
 ): MatchEvidence => {
   return {
-    transactionId: normalizeTxId(transaction.transactionId),
+    transactionId: transaction.sourceTransactionId ?? normalizeTxId(transaction.transactionId),
     invoiceId: canonical.join_invoice_id || undefined,
     poNumber: canonical.join_po_number || undefined,
     // The invoice row's own PO reference, from the invoice source file.
@@ -639,7 +647,9 @@ export class MockDataProvider implements DataProvider {
         vendor_id: normalized.vendor_id,
         po_amount: normalized.po_amount,
         receipt_amount: normalized.receipt_amount,
-        gl_amount: normalized.gl_amount
+        gl_amount: normalized.gl_amount,
+        feeder_qty: normalized.feeder_qty,
+        erp_qty: normalized.erp_qty
       };
     });
     this.canonicalByTxId = new Map();

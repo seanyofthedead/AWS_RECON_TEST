@@ -260,11 +260,32 @@ export const CasePage = () => {
           <h2 className="text-sm font-semibold text-slate-700">Transaction</h2>
           <dl className="mt-3 space-y-2 text-sm text-slate-600">
             <div className="flex items-center justify-between">
-              <dt>Vendor</dt>
-              <dd className="font-medium text-slate-900">
+              <dt className="flex items-center gap-2">
+                Vendor
+                <InfoTooltip
+                  label="Vendor name"
+                  text="Demo display name. The source vendor ID is the identifier in the source files and evidence documents."
+                />
+              </dt>
+              <dd className="text-right font-medium text-slate-900">
                 {transaction?.vendor ?? "Unknown"}
+                {transaction?.sourceVendorId ? (
+                  <div className="text-xs font-normal text-slate-500">{transaction.sourceVendorId}</div>
+                ) : null}
               </dd>
             </div>
+            {transaction?.sourceTransactionId ? (
+              <div className="flex items-center justify-between">
+                <dt className="flex items-center gap-2">
+                  Source ID
+                  <InfoTooltip
+                    label="Source transaction ID"
+                    text="Transaction ID in the source files and evidence documents. The ID in the page header is a demo display alias."
+                  />
+                </dt>
+                <dd className="font-medium text-slate-900">{transaction.sourceTransactionId}</dd>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <dt>Amount</dt>
               <dd className="font-medium text-slate-900">
@@ -283,6 +304,20 @@ export const CasePage = () => {
                 {transaction ? formatCurrency(transaction.variance) : "$--"}
               </dd>
             </div>
+            {transaction?.quantityDelta !== undefined ? (
+              <div className="flex items-center justify-between">
+                <dt className="flex items-center gap-2">
+                  Quantity difference
+                  <InfoTooltip
+                    label="Quantity difference"
+                    text="Feeder quantity minus ERP quantity, in units. It is a separate measure from the monetary variance."
+                  />
+                </dt>
+                <dd className="font-medium text-slate-900">
+                  {transaction.quantityDelta} {Math.abs(transaction.quantityDelta) === 1 ? "unit" : "units"}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <dt className="flex items-center gap-2">
                 AI Reason
