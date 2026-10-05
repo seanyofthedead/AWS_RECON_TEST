@@ -6,6 +6,7 @@ import { SignOutButton } from "./auth/SignOutButton";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import { markRouteStart } from "./utils/perf";
 import { useDataProvider } from "./hooks/useDataProvider";
+import { useAuth } from "react-oidc-context";
 
 const ExecutiveSummaryPage = lazy(() =>
   import("./pages/ExecutiveSummaryPage").then((module) => ({
@@ -43,6 +44,15 @@ export const App = () => {
   const location = useLocation();
   const queryClient = useQueryClient();
   const dataProvider = useDataProvider();
+  const auth = useAuth();
+  const profile = auth.user?.profile;
+
+  // Decisions record the signed-in user rather than a fixed demo name.
+  useEffect(() => {
+    dataProvider.setActor(
+      profile ? { id: profile.sub, name: profile.email ?? profile.preferred_username ?? profile.sub } : null
+    );
+  }, [dataProvider, profile]);
 
   useEffect(() => {
     markRouteStart(location.pathname);
@@ -64,12 +74,7 @@ export const App = () => {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold">Agentic Reconciliation</h1>
-              <span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                FEMA · Demo
-              </span>
-            </div>
+            <h1 className="text-lg font-semibold">Agentic Reconciliation</h1>
             <p className="text-sm text-slate-600">
               Decision workspace for reconciliation cases.
             </p>

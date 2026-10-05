@@ -4,6 +4,7 @@ import { CaseFile } from "../types/case";
 import { ReviewerPacket } from "../types/queue";
 import { ReviewDecision, ReviewRequest } from "../types/review";
 import { TransactionRow } from "../types/transaction";
+import { IngestionReport } from "../utils/ingestion";
 
 export class ApiDataProvider implements DataProvider {
   async getCases(): Promise<TransactionRow[]> {
@@ -38,6 +39,18 @@ export class ApiDataProvider implements DataProvider {
       method: "POST",
       body: JSON.stringify(request)
     });
+  }
+
+  // The backend records the reviewer from its own auth; nothing to keep here.
+  setActor(_actor: { id: string; name: string } | null): void {}
+
+  // Ingestion reports are produced by the mock CSV loader only.
+  getIngestionReport(source = "baseline"): IngestionReport {
+    throw new Error(`No ingestion report for ${source}.`);
+  }
+
+  listIngestionReports(): Record<string, IngestionReport> {
+    return {};
   }
 
   async importNextBatch(batchId: number): Promise<{ importedCount: number; caseIds: string[] }> {

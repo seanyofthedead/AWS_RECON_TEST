@@ -405,7 +405,8 @@ export const BatchImportWorkflow = ({
                 Importing ERP Variance Batch
               </h2>
               <p className="mt-1 text-sm text-slate-600">
-                Reconciling variances and preparing case packets for human review
+                Simulated walkthrough: the import already finished; these steps illustrate
+                the pipeline and are not live processing events.
               </p>
             </div>
             <div className="flex items-center gap-3">

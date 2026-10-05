@@ -13,8 +13,12 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
   const [selectedClaimId, setSelectedClaimId] = useState(
     caseFile.claims[0]?.id ?? ""
   );
-  const [verifyingId, setVerifyingId] = useState<string | null>(null);
-  const [verifiedIds, setVerifiedIds] = useState<Record<string, boolean>>({});
+  // Results are keyed by claim and evidence together: a check confirms that
+  // this claim cites this document, not the document in general.
+  const [verifyingKey, setVerifyingKey] = useState<string | null>(null);
+  const [linkResults, setLinkResults] = useState<Record<string, "linked" | "not-linked" | "error">>(
+    {}
+  );
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
   // Only move focus after keyboard navigation; focusing on mount scrolls the page.
   const keyboardNavRef = useRef(false);
@@ -55,34 +59,37 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
     [caseFile.matchEvidence]
   );
 
-  const matchLabel =
-    matchResult.status === "pass"
-      ? "PASS"
-      : matchResult.status === "fail"
-        ? "FAIL"
-        : "INCONCLUSIVE";
-  const matchTone =
-    matchResult.status === "pass"
+  const statusLabel = (status: string) =>
+    status === "pass" ? "PASS" : status === "fail" ? "FAIL" : "INCONCLUSIVE";
+  const statusTone = (status: string) =>
+    status === "pass"
       ? "bg-emerald-100 text-emerald-900"
-      : matchResult.status === "fail"
+      : status === "fail"
         ? "bg-rose-100 text-rose-900"
         : "bg-amber-100 text-amber-900";
 
+  const linkKey = (claimId: string, evidenceId: string) => `${claimId}::${evidenceId}`;
+
   const verifyMutation = useMutation({
-    mutationFn: (evidenceId: string) =>
-      dataProvider.verifyLink({
-        caseId: caseFile.caseId,
-        claimId: selectedClaimId,
-        evidenceId
-      }),
-    onMutate: (evidenceId) => {
-      setVerifyingId(evidenceId);
+    mutationFn: (request: { claimId: string; evidenceId: string }) =>
+      dataProvider.verifyLink({ caseId: caseFile.caseId, ...request }),
+    onMutate: (request) => {
+      setVerifyingKey(linkKey(request.claimId, request.evidenceId));
     },
-    onSuccess: (_data, evidenceId) => {
-      setVerifiedIds((prev) => ({ ...prev, [evidenceId]: true }));
+    onSuccess: (data, request) => {
+      setLinkResults((prev) => ({
+        ...prev,
+        [linkKey(request.claimId, request.evidenceId)]: data?.ok === true ? "linked" : "not-linked"
+      }));
+    },
+    onError: (_error, request) => {
+      setLinkResults((prev) => ({
+        ...prev,
+        [linkKey(request.claimId, request.evidenceId)]: "error"
+      }));
     },
     onSettled: () => {
-      setVerifyingId(null);
+      setVerifyingKey(null);
     }
   });
 
@@ -158,17 +165,28 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
         <div className="mt-3 rounded-md border border-slate-100 bg-slate-50 p-3 text-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="font-semibold text-slate-900">Three-Way Match</div>
-            <span
-              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${matchTone}`}
-            >
-              Three-Way Match: {matchLabel}
-            </span>
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusTone(matchResult.referenceStatus)}`}
+              >
+                Reference links: {statusLabel(matchResult.referenceStatus)}
+              </span>
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${statusTone(matchResult.amountStatus)}`}
+              >
+                Amounts: {statusLabel(matchResult.amountStatus)}
+              </span>
+            </div>
           </div>
           <div className="mt-3 space-y-1 text-xs text-slate-600">
             <div>Invoice: {matchResult.invoiceNote}</div>
             <div>PO: {matchResult.poNote}</div>
             <div>Receipt: {matchResult.receiptNote}</div>
             <div>GL: {matchResult.glNote}</div>
+            <div>Amounts: {matchResult.amountNote}</div>
+            <div className="pt-1 text-slate-400">
+              Compared on source join IDs; document cards below show display IDs.
+            </div>
           </div>
         </div>
         {!selectedClaim ? (
@@ -188,8 +206,9 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">
                 {linkedEvidence.map((item) => {
-                  const isVerifying = verifyingId === item.id;
-                  const isVerified = verifiedIds[item.id];
+                  const key = linkKey(selectedClaimId, item.id);
+                  const isVerifying = verifyingKey === key;
+                  const result = linkResults[key];
                   return (
                     <div
                       key={item.id}
@@ -225,23 +244,31 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (item.url) {
-                            window.open(item.url, "_blank", "noopener,noreferrer");
-                          }
-                          verifyMutation.mutate(item.id);
-                        }}
-                        disabled={isVerifying || isVerified || !selectedClaimId || !item.url}
+                        onClick={() =>
+                          verifyMutation.mutate({ claimId: selectedClaimId, evidenceId: item.id })
+                        }
+                        disabled={isVerifying || result === "linked" || !selectedClaimId}
                         className="mt-3 inline-flex items-center justify-center rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isVerified
-                          ? "Link Verified"
-                          : isVerifying
-                            ? "Verifying…"
-                            : item.url
-                              ? "Open PDF"
-                              : "Missing"}
+                        {isVerifying
+                          ? "Checking…"
+                          : result === "linked"
+                            ? "Claim cites this document"
+                            : "Check claim reference"}
                       </button>
+                      {result === "not-linked" ? (
+                        <div className="mt-1 text-xs text-rose-800">
+                          Reference not confirmed for this claim.
+                        </div>
+                      ) : result === "error" ? (
+                        <div className="mt-1 text-xs text-rose-800">
+                          Check failed; try again.
+                        </div>
+                      ) : result === "linked" ? (
+                        <div className="mt-1 text-xs text-slate-500">
+                          Confirms the reference only, not the document's contents.
+                        </div>
+                      ) : null}
                     </div>
                   );
                 })}

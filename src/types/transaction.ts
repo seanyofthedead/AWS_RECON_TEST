@@ -1,7 +1,15 @@
 import { CaseStatus, ConfidenceBand } from "./case";
 
 export interface TransactionRow {
+  // Display alias shown in the demo; not a source-system ID.
   transactionId: string;
+  // Immutable source IDs, as they appear in the source files and PDFs.
+  sourceTransactionId?: string;
+  sourceVendorId?: string;
+  // Date the goods or services were provided, when the source supplies it.
+  serviceDate?: string;
+  // Feeder minus ERP quantity, in units. Distinct from the monetary variance.
+  quantityDelta?: number;
   postingDate: string;
   vendor: string;
   amount: number;
@@ -33,4 +41,15 @@ export interface TransactionRow {
     | "Other";
   rootCauseDetail?: string;
   resolvedAt?: string;
+  closureDisposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  // True when an analyst decision closed the case, as opposed to fixture data.
+  closedByAnalyst?: boolean;
+  // Join references carried by the source invoice row, kept separate from
+  // the display transaction ID.
+  sourceRefs?: {
+    invoiceId?: string;
+    poNumber?: string;
+    vendorId?: string;
+    invoiceAmount?: string;
+  };
 }

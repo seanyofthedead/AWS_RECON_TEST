@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDataProvider } from "../hooks/useDataProvider";
 import { StatusPill } from "../components/StatusPill";
 import { ConfidencePill } from "../components/ConfidencePill";
@@ -11,7 +11,8 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { useToastStore } from "../store/toastStore";
 import { InfoTooltip } from "../components/InfoTooltip";
-import { CaseStatus, ConfidenceBand } from "../types/case";
+import { CaseStatus } from "../types/case";
+import { ReviewDecisionType } from "../types/review";
 import { getRootCauseLabel } from "../utils/rootCause";
 import { useRoutePerf } from "../hooks/useRoutePerf";
 import { RecommendationCard } from "../components/RecommendationCard";
@@ -22,6 +23,7 @@ import {
   markRecommendationProposed
 } from "../utils/recommendations";
 import { formatCurrency } from "../utils/formatCurrency";
+import { describeClosure, planEscalateWithFix } from "../utils/closurePolicy";
 
 export const CasePage = () => {
   const { caseId = "" } = useParams();
@@ -59,35 +61,20 @@ export const CasePage = () => {
     window.scrollTo({ top: 0, left: 0 });
   }, [caseId]);
 
-  const reviewMutation = useMutation({
-    mutationFn: (decisionType: "CLOSE_AS_RESOLVED" | "ESCALATE") =>
-      dataProvider.reviewCase(caseId, {
-        decisionType,
-        reasonCode: decisionType === "ESCALATE" ? "NEEDS_HUMAN_REVIEW" : "POLICY_MATCH",
-        rationale:
-          decisionType === "ESCALATE"
-            ? "Escalated for human review."
-            : "Resolved with high confidence.",
-        evidenceIds: []
-      }),
-    onSuccess: (_decision, decisionType) => {
-      addToast({
-        message:
-          decisionType === "ESCALATE"
-            ? "Case escalated to reviewer queue."
-            : "Case resolved successfully.",
-        type: "success"
-      });
-      void queryClient.invalidateQueries({ queryKey: ["cases"] });
-      void queryClient.invalidateQueries({ queryKey: ["case", caseId] });
-      void queryClient.invalidateQueries({ queryKey: ["escalations"] });
-    },
-    onError: () => {
-      addToast({ message: "Unable to update case. Try again.", type: "error" });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [decisionModal, setDecisionModal] = useState<ReviewDecisionType | null>(null);
+  const [attachOnEscalate, setAttachOnEscalate] = useState(false);
+
+  // Inbox links here with ?decision=... to open the decision form directly.
+  useEffect(() => {
+    const requested = searchParams.get("decision");
+    if (requested === "CLOSE_AS_RESOLVED" || requested === "ESCALATE") {
+      setDecisionModal(requested);
+      const next = new URLSearchParams(searchParams);
+      next.delete("decision");
+      setSearchParams(next, { replace: true });
     }
-  });
-  const actionPending = reviewMutation.isPending;
-  const [overrideOpen, setOverrideOpen] = useState(false);
+  }, [searchParams, setSearchParams]);
   const [tabInitialized, setTabInitialized] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "evidence" | "structured" | "conflicts" | "runlog"
@@ -165,11 +152,8 @@ export const CasePage = () => {
   }
 
   const aiReason = transaction ? getRootCauseLabel(transaction) : "Unknown";
-  const hasConflicts = caseFile.conflicts.length > 0;
-  const showQuickAccept =
-    caseFile.status === CaseStatus.ScreenedUnresolved &&
-    transaction?.confidenceBand === ConfidenceBand.High &&
-    !hasConflicts;
+  const isClosed = caseFile.status === CaseStatus.Resolved;
+  const isEscalated = caseFile.status === CaseStatus.Escalated;
 
   const copyEntry = async () => {
     if (!recommendation?.bookingEntry) {
@@ -201,12 +185,20 @@ export const CasePage = () => {
     addToast({ message: "Recommendation marked as proposed", type: "success" });
   };
 
+  // Escalating with a fix is one operation: the snapshot is attached only
+  // once the escalation itself succeeds. An escalated case just takes the fix.
   const addRecommendationToEscalation = () => {
-    if (!recommendation) {
+    if (!recommendation || !caseFile) {
       return;
     }
-    attachRecommendationToEscalation(caseId, recommendation);
-    addToast({ message: "Recommendation added to escalation", type: "success" });
+    if (planEscalateWithFix(caseFile.status) === "ATTACH_ONLY") {
+      attachRecommendationToEscalation(caseId, recommendation);
+      addToast({ message: "Fix attached to the escalation", type: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["escalations"] });
+      return;
+    }
+    setAttachOnEscalate(true);
+    setDecisionModal("ESCALATE");
   };
 
   return (
@@ -221,32 +213,30 @@ export const CasePage = () => {
           </div>
           <h1 className="text-2xl font-semibold text-slate-900">Case Review</h1>
           <p className="text-sm text-slate-600">Single case story and evidence.</p>
-          <p className="text-sm text-slate-600">Review, then accept or escalate.</p>
+          <p className="text-sm text-slate-600">
+            Review, then close with rationale and evidence, or escalate.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => reviewMutation.mutate("CLOSE_AS_RESOLVED")}
-            disabled={actionPending}
-            aria-busy={actionPending}
+            onClick={() => setDecisionModal("CLOSE_AS_RESOLVED")}
+            disabled={isClosed}
           >
-            {actionPending ? "Working..." : "Accept"}
+            Close case
           </button>
           <button
-            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => setOverrideOpen(true)}
-            disabled={actionPending}
-            aria-busy={actionPending}
+            className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            onClick={() => setDecisionModal("OVERRIDE")}
           >
-            Override
+            {isClosed ? "Reopen / Override" : "Override"}
           </button>
           <button
             className="rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => reviewMutation.mutate("ESCALATE")}
-            disabled={actionPending}
-            aria-busy={actionPending}
+            onClick={() => setDecisionModal("ESCALATE")}
+            disabled={isEscalated}
           >
-            {actionPending ? "Working..." : "Escalate"}
+            Escalate
           </button>
         </div>
       </header>
@@ -265,31 +255,37 @@ export const CasePage = () => {
         </div>
       )}
 
-      {showQuickAccept ? (
-        <section className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
-          <span>High confidence and no conflicts. Accept to resolve.</span>
-          <button
-            type="button"
-            className="rounded-md border border-emerald-200 bg-white px-3 py-1 text-xs font-semibold text-emerald-900 hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={() => reviewMutation.mutate("CLOSE_AS_RESOLVED")}
-            disabled={actionPending}
-            aria-busy={actionPending}
-          >
-            {actionPending ? "Accepting..." : "Accept now"}
-          </button>
-        </section>
-      ) : null}
-
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <h2 className="text-sm font-semibold text-slate-700">Transaction</h2>
           <dl className="mt-3 space-y-2 text-sm text-slate-600">
             <div className="flex items-center justify-between">
-              <dt>Vendor</dt>
-              <dd className="font-medium text-slate-900">
+              <dt className="flex items-center gap-2">
+                Vendor
+                <InfoTooltip
+                  label="Vendor name"
+                  text="Demo display name. The source vendor ID is the identifier in the source files and evidence documents."
+                />
+              </dt>
+              <dd className="text-right font-medium text-slate-900">
                 {transaction?.vendor ?? "Unknown"}
+                {transaction?.sourceVendorId ? (
+                  <div className="text-xs font-normal text-slate-500">{transaction.sourceVendorId}</div>
+                ) : null}
               </dd>
             </div>
+            {transaction?.sourceTransactionId ? (
+              <div className="flex items-center justify-between">
+                <dt className="flex items-center gap-2">
+                  Source ID
+                  <InfoTooltip
+                    label="Source transaction ID"
+                    text="Transaction ID in the source files and evidence documents. The ID in the page header is a demo display alias."
+                  />
+                </dt>
+                <dd className="font-medium text-slate-900">{transaction.sourceTransactionId}</dd>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <dt>Amount</dt>
               <dd className="font-medium text-slate-900">
@@ -301,13 +297,27 @@ export const CasePage = () => {
                 Variance
                 <InfoTooltip
                   label="Variance definition"
-                  text="Difference between expected and actual amount."
+                  text="Reported monetary variance from the source file. Positive means the invoiced amount exceeds the amount posted to the GL; negative means more was posted than invoiced."
                 />
               </dt>
               <dd className="font-medium text-slate-900">
                 {transaction ? formatCurrency(transaction.variance) : "$--"}
               </dd>
             </div>
+            {transaction?.quantityDelta !== undefined ? (
+              <div className="flex items-center justify-between">
+                <dt className="flex items-center gap-2">
+                  Quantity difference
+                  <InfoTooltip
+                    label="Quantity difference"
+                    text="Feeder quantity minus ERP quantity, in units. It is a separate measure from the monetary variance."
+                  />
+                </dt>
+                <dd className="font-medium text-slate-900">
+                  {transaction.quantityDelta} {Math.abs(transaction.quantityDelta) === 1 ? "unit" : "units"}
+                </dd>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between">
               <dt className="flex items-center gap-2">
                 AI Reason
@@ -341,13 +351,24 @@ export const CasePage = () => {
             </div>
           )}
           {caseFile.resolvedAt && (
-            <div className="mt-3 text-xs text-slate-500">
-              Resolved {new Date(caseFile.resolvedAt).toLocaleString()}
+            <div className="mt-3 space-y-1 text-xs text-slate-500">
+              <div>Closed {new Date(caseFile.resolvedAt).toLocaleString()}</div>
+              {caseFile.closureDisposition === "DOCUMENTED_EXCEPTION" ? (
+                <div className="text-amber-800">
+                  Documented exception: match not confirmed; residual variance{" "}
+                  {formatCurrency(caseFile.residualVariance ?? 0)} not cleared by a posted
+                  correction.
+                </div>
+              ) : caseFile.closureDisposition === "MATCH_CONFIRMED" ? (
+                <div>Match confirmed at closure.</div>
+              ) : (
+                <div>{describeClosure(caseFile)}.</div>
+              )}
             </div>
           )}
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="text-sm font-semibold text-slate-700">Run Log</h2>
+          <h2 className="text-sm font-semibold text-slate-700">Run Log (simulated)</h2>
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
             {caseFile.runLog.map((entry) => (
               <li key={entry.id}>
@@ -584,10 +605,17 @@ export const CasePage = () => {
       </section>
 
       <OverrideModal
-        isOpen={overrideOpen}
+        isOpen={decisionModal !== null}
+        initialDecisionType={decisionModal ?? "OVERRIDE"}
         caseFile={caseFile}
-        onClose={() => setOverrideOpen(false)}
-        onSuccess={(message) => {
+        onClose={() => {
+          setDecisionModal(null);
+          setAttachOnEscalate(false);
+        }}
+        onSuccess={(message, decisionType) => {
+          if (attachOnEscalate && decisionType === "ESCALATE" && recommendation) {
+            attachRecommendationToEscalation(caseId, recommendation);
+          }
           addToast({ message, type: "success" });
           void queryClient.invalidateQueries({ queryKey: ["cases"] });
           void queryClient.invalidateQueries({ queryKey: ["case", caseId] });

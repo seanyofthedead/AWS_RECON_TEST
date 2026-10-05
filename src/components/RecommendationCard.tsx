@@ -84,15 +84,20 @@ export const RecommendationCard = ({
       {recommendation.bookingEntry ? (
         <div className="mt-4">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Posting-ready entry (for review)
+            Illustrative adjustment (not posting-ready)
             <InfoTooltip
-              label="Posting-ready entry"
-              text="Posting-ready entry for approval workflow; review before approval."
+              label="Illustrative adjustment"
+              text="Generic accounts from a rules template. It lacks validated account IDs, fund/TAS, and other dimensions, and needs a finance-approved accounting profile before posting."
             />
           </div>
           <BookingEntryTable entry={recommendation.bookingEntry} />
         </div>
-      ) : null}
+      ) : (
+        <p className="mt-4 text-xs text-slate-500">
+          No journal proposed. This is an operational or evidence step; propose an entry only
+          after its accounting impact is confirmed.
+        </p>
+      )}
 
       {showActions ? (
         <div className="mt-4 flex flex-wrap gap-2">
@@ -110,14 +115,14 @@ export const RecommendationCard = ({
             className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-900 hover:bg-emerald-100"
             onClick={onPropose}
           >
-            Mark as Proposed
+            Mark as Proposed (local note)
           </button>
           <button
             type="button"
             className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100"
             onClick={onEscalate}
           >
-            Add to Escalation
+            Escalate with this fix
           </button>
         </div>
       ) : null}

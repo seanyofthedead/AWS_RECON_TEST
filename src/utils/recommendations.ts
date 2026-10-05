@@ -1,3 +1,4 @@
+import { schedulePosting } from "./fiscalCalendar";
 import { hashString } from "./hash";
 import { getRootCauseLabel } from "./rootCause";
 import { TransactionRow } from "../types/transaction";
@@ -13,6 +14,9 @@ type RecommendationInput = {
   transaction?: TransactionRow;
   aiReason?: string;
 };
+
+// Bump when templates change so cached recommendations are recomputed.
+export const RULES_VERSION = "2026-10-05.2";
 
 const STORAGE_KEY_PROPOSED = "recon_recommendation_proposed_v1";
 const STORAGE_KEY_ESCALATION = "recon_recommendation_escalation_v1";
@@ -61,16 +65,10 @@ const writeStorageMap = (key: string, map: Record<string, string>) => {
   storage.setItem(key, JSON.stringify(map));
 };
 
-const formatPeriod = (dateValue?: string) => {
-  if (!dateValue) {
-    return undefined;
-  }
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) {
-    return undefined;
-  }
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-};
+const validDate = (dateValue?: string) =>
+  dateValue && /^\d{4}-\d{2}-\d{2}/.test(dateValue) && !Number.isNaN(Date.parse(dateValue))
+    ? dateValue.slice(0, 10)
+    : undefined;
 
 const buildMemo = (base: string, transaction?: TransactionRow) => {
   if (!transaction) {
@@ -84,8 +82,9 @@ const buildEntry = (options: {
   creditAccount: string;
   amount: number;
   memo: string;
-  effectiveDate?: string;
-  period?: string;
+  serviceDate?: string;
+  servicePeriodBasis?: "service date" | "posting date";
+  accrual?: boolean;
   reverse?: boolean;
 }): BookingEntry => {
   const amount = Math.abs(options.amount);
@@ -93,8 +92,9 @@ const buildEntry = (options: {
   const credit = options.reverse ? options.debitAccount : options.creditAccount;
   return {
     memo: options.memo,
-    effectiveDate: options.effectiveDate,
-    period: options.period,
+    ...(options.serviceDate
+      ? schedulePosting(options.serviceDate, Boolean(options.accrual), options.servicePeriodBasis)
+      : {}),
     lines: [
       { direction: "DEBIT", account: debit, amount },
       { direction: "CREDIT", account: credit, amount }
@@ -185,6 +185,11 @@ const makeBookedTemplate = (config: {
   nextSteps: string[];
   debitAccount: string;
   creditAccount: string;
+  // Corrections whose direction follows from the original posting (e.g.
+  // reversing a duplicate) must not flip with the variance sign.
+  fixedDirection?: boolean;
+  // Accruals are reversed in the following period.
+  accrual?: boolean;
 }): TemplateBuilder => {
   return (input) => {
     const amount = input.transaction?.variance ?? 0;
@@ -197,15 +202,36 @@ const makeBookedTemplate = (config: {
         creditAccount: config.creditAccount,
         amount,
         memo: buildMemo(config.title, input.transaction),
-        effectiveDate: input.transaction?.postingDate,
-        period: formatPeriod(input.transaction?.postingDate),
-        reverse: amount < 0
+        ...(validDate(input.transaction?.serviceDate)
+          ? { serviceDate: validDate(input.transaction?.serviceDate), servicePeriodBasis: "service date" as const }
+          : { serviceDate: validDate(input.transaction?.postingDate), servicePeriodBasis: "posting date" as const }),
+        accrual: config.accrual,
+        reverse: !config.fixedDirection && amount < 0
       }),
       confidence: confidenceForCategory(config.category),
       rationale: config.rationale,
       source: "rules"
     };
   };
+};
+
+// Source-system or data repairs. These change no accounting by themselves, so
+// no journal is proposed until economic impact is established.
+const makeActionTemplate = (config: {
+  category: RootCauseCategory;
+  id: string;
+  title: string;
+  rationale: string;
+  nextSteps: string[];
+}): TemplateBuilder => {
+  return () => ({
+    id: config.id,
+    title: config.title,
+    nextSteps: config.nextSteps,
+    confidence: confidenceForCategory(config.category),
+    rationale: config.rationale,
+    source: "rules"
+  });
 };
 
 const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
@@ -220,7 +246,8 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
       "Schedule reversal next period"
     ],
     debitAccount: accountMap.expense,
-    creditAccount: accountMap.accrued
+    creditAccount: accountMap.accrued,
+    accrual: true
   }),
   DUPLICATE: makeBookedTemplate({
     category: "DUPLICATE",
@@ -233,7 +260,8 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
       "Notify vendor if remittance already sent"
     ],
     debitAccount: accountMap.ap,
-    creditAccount: accountMap.expense
+    creditAccount: accountMap.expense,
+    fixedDirection: true
   }),
   REVERSAL_MISSING: makeBookedTemplate({
     category: "REVERSAL_MISSING",
@@ -248,18 +276,16 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
     debitAccount: accountMap.accrued,
     creditAccount: accountMap.expense
   }),
-  MISSING_RECEIPT: makeBookedTemplate({
+  MISSING_RECEIPT: makeActionTemplate({
     category: "MISSING_RECEIPT",
     id: "rec-missing-receipt",
-    title: "Clear GR/IR for missing receipt",
-    rationale: "Goods received but no receipt posted",
+    title: "Confirm receipt before any entry",
+    rationale: "No receipt matched; receipt of goods is not yet established",
     nextSteps: [
-      "Confirm goods received with receiving team",
-      "Post receipt in receiving system",
-      "Match invoice to receipt and clear GR/IR"
-    ],
-    debitAccount: accountMap.grIr,
-    creditAccount: accountMap.ap
+      "Confirm with receiving whether goods or services were received",
+      "Post the receipt in the receiving system if receipt is confirmed",
+      "Re-run the match; propose an accrual only if receipt is confirmed and unbilled"
+    ]
   }),
   MANUAL_ENTRY_ERROR: makeBookedTemplate({
     category: "MANUAL_ENTRY_ERROR",
@@ -274,7 +300,7 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
     debitAccount: accountMap.expense,
     creditAccount: accountMap.ap
   }),
-  STALE_MASTER_DATA: makeBookedTemplate({
+  STALE_MASTER_DATA: makeActionTemplate({
     category: "STALE_MASTER_DATA",
     id: "rec-stale-master",
     title: "Refresh vendor master data",
@@ -282,49 +308,41 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
     nextSteps: [
       "Verify vendor master against latest source",
       "Refresh master data feed",
-      "Re-evaluate variance after refresh"
-    ],
-    debitAccount: accountMap.suspense,
-    creditAccount: accountMap.ap
+      "Re-evaluate variance after refresh; journal only if a posted amount is wrong"
+    ]
   }),
-  REFERENCE_DATA: makeBookedTemplate({
+  REFERENCE_DATA: makeActionTemplate({
     category: "REFERENCE_DATA",
     id: "rec-reference-data",
-    title: "Reclass to Suspense pending mapping fix",
+    title: "Correct reference data mapping",
     rationale: "Mapping codes inconsistent across systems",
     nextSteps: [
       "Identify mapping codes that disagree across systems",
-      "Reclass posting to Suspense / Clearing",
-      "Re-post once reference data is realigned"
-    ],
-    debitAccount: accountMap.suspense,
-    creditAccount: accountMap.ap
+      "Correct the mapping in the source system",
+      "Re-evaluate variance; journal only if a posted amount or account is wrong"
+    ]
   }),
-  WRONG_PO_REFERENCE: makeBookedTemplate({
+  WRONG_PO_REFERENCE: makeActionTemplate({
     category: "WRONG_PO_REFERENCE",
     id: "rec-wrong-po",
     title: "Re-link invoice to correct PO",
     rationale: "Invoice references different PO than recorded",
     nextSteps: [
       "Verify invoice PO with vendor or procurement",
-      "Reverse posting against the incorrect PO",
-      "Re-post against the correct PO"
-    ],
-    debitAccount: accountMap.suspense,
-    creditAccount: accountMap.ap
+      "Re-link the invoice to the correct PO in the source system",
+      "Re-run the match; journal only if the posting itself is wrong"
+    ]
   }),
-  BATCH_INTERFACE: makeBookedTemplate({
+  BATCH_INTERFACE: makeActionTemplate({
     category: "BATCH_INTERFACE",
     id: "rec-batch-interface",
-    title: "Re-run failed batch interface",
+    title: "Replay missing interface records",
     rationale: "Inbound batch interface did not post",
     nextSteps: [
-      "Inspect batch interface log for the failure",
-      "Re-submit the failed batch",
-      "Confirm posting lands in the target ledger"
-    ],
-    debitAccount: accountMap.suspense,
-    creditAccount: accountMap.ap
+      "Determine which records in the batch already posted",
+      "Replay only the missing records with an idempotency key",
+      "Confirm postings land once in the target ledger"
+    ]
   }),
   UOM_MISMATCH: makeBookedTemplate({
     category: "UOM_MISMATCH",
@@ -352,18 +370,16 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
     debitAccount: accountMap.expense,
     creditAccount: accountMap.accrued
   }),
-  WRONG_VENDOR_MAPPING: makeBookedTemplate({
+  WRONG_VENDOR_MAPPING: makeActionTemplate({
     category: "WRONG_VENDOR_MAPPING",
     id: "rec-wrong-vendor",
     title: "Reassign to correct vendor",
     rationale: "Posted against the wrong vendor master record",
     nextSteps: [
       "Identify the correct vendor master record",
-      "Reverse posting against the wrong vendor",
-      "Re-post against the correct vendor"
-    ],
-    debitAccount: accountMap.suspense,
-    creditAccount: accountMap.ap
+      "Correct the vendor assignment in the subledger",
+      "Re-evaluate variance; journal only if a posted amount is wrong"
+    ]
   }),
   PRICE_VARIANCE: makeBookedTemplate({
     category: "PRICE_VARIANCE",
@@ -378,18 +394,16 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
     debitAccount: accountMap.ppv,
     creditAccount: accountMap.ap
   }),
-  CONVERSION_ERROR: makeBookedTemplate({
+  CONVERSION_ERROR: makeActionTemplate({
     category: "CONVERSION_ERROR",
     id: "rec-conversion-error",
-    title: "Adjust for conversion error",
-    rationale: "Conversion factor misapplied",
+    title: "Diagnose conversion error",
+    rationale: "Conversion factor misapplied; conversion type not yet established",
     nextSteps: [
-      "Confirm conversion factor used at posting",
-      "Reverse mis-converted posting",
-      "Re-post with the correct conversion"
-    ],
-    debitAccount: accountMap.fx,
-    creditAccount: accountMap.ap
+      "Determine the conversion type: unit of measure, currency, or decimal scale",
+      "Correct the transform rule and recompute affected lines",
+      "For currency, confirm transaction and functional currency, rates, and rate dates before any FX entry"
+    ]
   }),
   MISSING_ACCRUAL: makeBookedTemplate({
     category: "MISSING_ACCRUAL",
@@ -402,7 +416,8 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
       "Schedule reversal next period"
     ],
     debitAccount: accountMap.expense,
-    creditAccount: accountMap.accrued
+    creditAccount: accountMap.accrued,
+    accrual: true
   }),
   MISCODED_ACCOUNT: makeBookedTemplate({
     category: "MISCODED_ACCOUNT",
@@ -458,13 +473,55 @@ const recommendationTemplates: Record<RootCauseCategory, TemplateBuilder> = {
 
 const recommendationCache = new Map<string, Recommendation[]>();
 
+// A zero variance needs no journal; never propose a $0.00 entry.
+const noAdjustment = (category: RootCauseCategory): Recommendation => ({
+  id: "rec-no-adjustment",
+  title: "No adjustment required",
+  rationale: "Reported variance is zero",
+  nextSteps: [
+    "Confirm the three-way match passes",
+    "Close the case with the matched documents attached"
+  ],
+  confidence: confidenceForCategory(category),
+  source: "rules"
+});
+
 export const recommendFix = (input: RecommendationInput): Recommendation => {
   const rootCause = deriveRootCause(input);
+  if (input.transaction && input.transaction.variance === 0) {
+    return noAdjustment(rootCause);
+  }
   return recommendationTemplates[rootCause](input);
 };
 
+const cacheKeyFor = (input: RecommendationInput) => {
+  const tx = input.transaction;
+  return [
+    RULES_VERSION,
+    input.caseId,
+    input.aiReason ?? "",
+    tx
+      ? [
+          tx.variance,
+          tx.postingDate,
+          tx.serviceDate,
+          tx.vendor,
+          tx.transactionId,
+          tx.canonicalAiReason,
+          tx.canonicalVarianceCategory,
+          tx.rootCauseBucket
+        ].join("|")
+      : ""
+  ].join("::");
+};
+
+// Returns nothing until the case's transaction is loaded, so no placeholder
+// entry is ever shown or cached.
 export const getRecommendationsForCase = (input: RecommendationInput): Recommendation[] => {
-  const cacheKey = input.caseId;
+  if (!input.transaction) {
+    return [];
+  }
+  const cacheKey = cacheKeyFor(input);
   const cached = recommendationCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -478,7 +535,9 @@ export const getRecommendationsForCase = (input: RecommendationInput): Recommend
   return recommendations;
 };
 
-export const getPrimaryRecommendation = (input: RecommendationInput) => {
+export const getPrimaryRecommendation = (
+  input: RecommendationInput
+): Recommendation | undefined => {
   return getRecommendationsForCase(input)[0];
 };
 
@@ -487,23 +546,58 @@ export const formatBookingEntry = (entry: BookingEntry) => {
     .map((line) => `${line.direction}: ${line.account} ${line.amount.toFixed(2)}`)
     .join("\n");
   const meta = [
-    entry.period ? `Period: ${entry.period}` : null,
-    entry.effectiveDate ? `Date: ${entry.effectiveDate}` : null
+    entry.servicePeriod
+      ? `Service period: ${entry.servicePeriod}${entry.servicePeriodBasis === "posting date" ? " (inferred from the posting date)" : ""}`
+      : null,
+    entry.period ? `Posting period: ${entry.period} (FY${entry.fiscalYear})` : null,
+    entry.effectiveDate ? `Effective: ${entry.effectiveDate}` : null,
+    entry.priorPeriodAdjustment ? "Prior-period adjustment: requires approval" : null,
+    entry.reversal ? `Reversal: ${entry.reversal.date}` : null
   ]
     .filter(Boolean)
     .join(" · ");
   return [entry.memo, meta, lines].filter(Boolean).join("\n");
 };
 
+// Markers are stamped with the rules version, so a recommendation proposed
+// under earlier templates is not shown as proposed after the templates change.
 export const markRecommendationProposed = (caseId: string, recommendationId: string) => {
   const map = readStorageMap(STORAGE_KEY_PROPOSED);
-  map[caseId] = recommendationId;
+  map[caseId] = JSON.stringify({ id: recommendationId, rulesVersion: RULES_VERSION });
   writeStorageMap(STORAGE_KEY_PROPOSED, map);
 };
 
-export const getProposedRecommendationId = (caseId: string) => {
-  const map = readStorageMap(STORAGE_KEY_PROPOSED);
-  return map[caseId];
+export const getProposedRecommendationId = (caseId: string): string | undefined => {
+  const raw = readStorageMap(STORAGE_KEY_PROPOSED)[caseId];
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const marker = JSON.parse(raw) as { id?: unknown; rulesVersion?: unknown };
+    return marker.rulesVersion === RULES_VERSION && typeof marker.id === "string"
+      ? marker.id
+      : undefined;
+  } catch {
+    // Legacy markers stored a bare ID with no rules version.
+    return undefined;
+  }
+};
+
+// An escalation snapshot is an audit record of what the analyst escalated, so
+// it is never rewritten. It is stamped with the rules version that produced
+// it; a snapshot from other (or unknown, pre-stamp) rules is reported stale so
+// callers stop presenting its booking entry as current.
+type EscalationSnapshot = {
+  rulesVersion: string;
+  attachedAt: string;
+  recommendation: Recommendation;
+};
+
+export type EscalationAttachment = {
+  recommendation: Recommendation;
+  rulesVersion?: string;
+  attachedAt?: string;
+  stale: boolean;
 };
 
 export const attachRecommendationToEscalation = (
@@ -511,24 +605,62 @@ export const attachRecommendationToEscalation = (
   recommendation: Recommendation
 ) => {
   const map = readStorageMap(STORAGE_KEY_ESCALATION);
-  map[caseId] = JSON.stringify(recommendation);
+  const snapshot: EscalationSnapshot = {
+    rulesVersion: RULES_VERSION,
+    attachedAt: new Date().toISOString(),
+    recommendation
+  };
+  map[caseId] = JSON.stringify(snapshot);
   writeStorageMap(STORAGE_KEY_ESCALATION, map);
 };
 
-export const getEscalationRecommendation = (caseId: string) => {
+const isRecommendation = (value: unknown): value is Recommendation =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as Recommendation).id === "string" &&
+  typeof (value as Recommendation).title === "string";
+
+export const getEscalationRecommendation = (
+  caseId: string
+): EscalationAttachment | undefined => {
   const map = readStorageMap(STORAGE_KEY_ESCALATION);
   const raw = map[caseId];
   if (!raw) {
     return undefined;
   }
+  let parsed: unknown;
   try {
-    return JSON.parse(raw) as Recommendation;
+    parsed = JSON.parse(raw);
   } catch {
     return undefined;
   }
+  if (typeof parsed !== "object" || parsed === null) {
+    return undefined;
+  }
+  const snapshot = parsed as Partial<EscalationSnapshot>;
+  if (isRecommendation(snapshot.recommendation)) {
+    return {
+      recommendation: snapshot.recommendation,
+      rulesVersion: snapshot.rulesVersion,
+      attachedAt: snapshot.attachedAt,
+      stale: snapshot.rulesVersion !== RULES_VERSION
+    };
+  }
+  // Legacy format: the bare Recommendation, attached before rules were stamped.
+  if (isRecommendation(parsed)) {
+    return { recommendation: parsed, stale: true };
+  }
+  return undefined;
 };
 
 export const ENTRY_LESS_CATEGORIES: ReadonlySet<RootCauseCategory> = new Set([
   "VENDOR_RATE_ERROR",
-  "OTHER"
+  "OTHER",
+  "MISSING_RECEIPT",
+  "STALE_MASTER_DATA",
+  "REFERENCE_DATA",
+  "WRONG_PO_REFERENCE",
+  "BATCH_INTERFACE",
+  "WRONG_VENDOR_MAPPING",
+  "CONVERSION_ERROR"
 ]);

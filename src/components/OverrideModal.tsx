@@ -4,12 +4,14 @@ import { CaseFile } from "../types/case";
 import { ReviewDecisionType, ReviewReasonCode } from "../types/review";
 import { useDataProvider } from "../hooks/useDataProvider";
 import { useToastStore } from "../store/toastStore";
+import { evaluateDecision } from "../utils/closurePolicy";
 
 interface OverrideModalProps {
   isOpen: boolean;
   caseFile: CaseFile;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, decisionType: ReviewDecisionType) => void;
+  initialDecisionType?: ReviewDecisionType;
 }
 
 const decisionOptions: Array<{ value: ReviewDecisionType; label: string }> = [
@@ -28,7 +30,20 @@ const reasonOptions: Array<{ value: ReviewReasonCode; label: string }> = [
   { value: "OTHER", label: "Other" }
 ];
 
-export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: OverrideModalProps) => {
+const titles: Record<ReviewDecisionType, string> = {
+  CLOSE_AS_RESOLVED: "Close Case",
+  OVERRIDE: "Override Decision",
+  ESCALATE: "Escalate Case",
+  REQUEST_MORE_EVIDENCE: "Request More Evidence"
+};
+
+export const OverrideModal = ({
+  isOpen,
+  caseFile,
+  onClose,
+  onSuccess,
+  initialDecisionType = "OVERRIDE"
+}: OverrideModalProps) => {
   const dataProvider = useDataProvider();
   const addToast = useToastStore((state) => state.addToast);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -43,16 +58,34 @@ export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: Override
         decisionType,
         reasonCode,
         rationale,
-        evidenceIds: selectedEvidence
+        evidenceIds: selectedEvidence,
+        expectedVersion: caseFile.version
       }),
     onSuccess: () => {
-      onSuccess(`Decision submitted for ${caseFile.caseId}.`);
+      onSuccess(`Decision submitted for ${caseFile.caseId}.`, decisionType);
       onClose();
     },
-    onError: () => {
-      addToast({ message: "Unable to submit decision. Try again.", type: "error" });
+    onError: (error) => {
+      addToast({
+        message:
+          error instanceof Error && error.message
+            ? `Decision rejected: ${error.message}`
+            : "Unable to submit decision. Try again.",
+        type: "error"
+      });
     }
   });
+
+  // Each open starts a fresh decision for the current case.
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+    setDecisionType(initialDecisionType);
+    setReasonCode(initialDecisionType === "ESCALATE" ? "NEEDS_HUMAN_REVIEW" : "OTHER");
+    setRationale("");
+    setSelectedEvidence([]);
+  }, [isOpen, initialDecisionType, caseFile.caseId]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -102,7 +135,17 @@ export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: Override
     );
   };
 
-  const canSubmit = useMemo(() => rationale.trim().length > 0, [rationale]);
+  const check = useMemo(
+    () =>
+      evaluateDecision({
+        decisionType,
+        caseFile,
+        rationale,
+        evidenceIds: selectedEvidence
+      }),
+    [decisionType, caseFile, rationale, selectedEvidence]
+  );
+  const canSubmit = check.allowed;
 
   if (!isOpen) {
     return null;
@@ -119,7 +162,7 @@ export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: Override
       >
         <div className="border-b border-slate-200 px-6 py-4">
           <h2 id="override-modal-title" className="text-lg font-semibold text-slate-900">
-            Override Decision
+            {titles[decisionType]}
           </h2>
           <p className="text-sm text-slate-600">
             Provide rationale and supporting evidence for this decision.
@@ -169,13 +212,13 @@ export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: Override
               rows={4}
               value={rationale}
               onChange={(event) => setRationale(event.target.value)}
-              placeholder="Describe why this override is needed."
+              placeholder="Describe the basis for this decision."
             />
           </label>
 
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Attach Evidence (optional)
+              Attach Evidence {decisionType === "CLOSE_AS_RESOLVED" ? "(required)" : "(optional)"}
             </div>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
               {caseFile.evidence.map((item) => (
@@ -197,6 +240,20 @@ export const OverrideModal = ({ isOpen, caseFile, onClose, onSuccess }: Override
             </div>
           </div>
         </div>
+        {check.blockers.length > 0 || check.warnings.length > 0 ? (
+          <div className="space-y-1 px-6 pb-4 text-xs" aria-live="polite">
+            {check.blockers.map((item) => (
+              <div key={item} className="text-rose-800">
+                Required: {item}
+              </div>
+            ))}
+            {check.warnings.map((item) => (
+              <div key={item} className="text-amber-800">
+                Note: {item}
+              </div>
+            ))}
+          </div>
+        ) : null}
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 px-6 py-4">
           <button
             type="button"

@@ -22,11 +22,11 @@ The deployed bundle defaults to the mock data provider. It also includes API ada
 
 The verified Cognito configuration is region `us-east-1`, pool `us-east-1_XAmbH9Qna`, client `4s9nn63db1h6cphejuirj7afnp`, and hosted domain `us-east-1xambh9qna.auth.us-east-1.amazoncognito.com`. The original local repo successfully signed in and rendered at `http://localhost:5175/executive`; the deployed staging app also rendered after sign-in.
 
-The user supplied a corrected password during this session. It succeeded for `spedersen@guidehousefederal.com`. Do not save passwords in documentation, memory, scripts, or commits. Earlier incorrect-password findings were superseded for this verified XAmb setup. Obtain credentials from the user when needed in a future session.
+The user supplied a corrected password during this session. It succeeded for the demo account. Do not save passwords in documentation, memory, scripts, or commits. Earlier incorrect-password findings were superseded for this verified XAmb setup. Obtain credentials from the user when needed in a future session.
 
 Merged, self-service, current GitHub AgenticRecon, and historical mock-only frontends also authenticated and rendered locally when given the verified XAmb settings through process environment overrides. These tests did not change their saved configuration or prove backend functionality. Default development settings are missing in several of those copies. The current GitHub AgenticRecon passed on retry after an initial password-field timeout.
 
-The saved LFH configuration identifies pool `us-east-1_LFHcRzj3K`, client `6i2sb1oclj6udlkriemeb0bvmr`, and hosted domain `variance-agent-personal-292085144804.auth.us-east-1.amazoncognito.com`. That domain returned `Domain does not exist`; credentials were not submitted. This does not establish whether the pool itself still exists. No successful deployment of the newer AgenticRecon repo was confirmed.
+An older saved configuration pointed at pool `us-east-1_LFHcRzj3K`, which belonged to a separate app. Its hosted domain returned `Domain does not exist`, and on October 4, 2026 the pool's OpenID discovery document returned 404, so the pool no longer exists. See [the AWS configuration audit](reviews/2026-10-04-aws-config-audit.md). No successful deployment of the newer AgenticRecon repo was confirmed.
 
 The `recon_test` and `agent-frontend` copies rendered without Cognito and have no applicable password test.
 
