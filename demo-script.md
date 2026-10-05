@@ -36,7 +36,7 @@ Here is the working queue. Every row is a case, and the system has already done 
 
 [SHOW: Case detail page for a specific case, with the recommendation card, evidence tab, and structured comparison visible]
 
-When an analyst opens a case, they get the full story on one screen. At the top is the AI's recommendation — what to do and why, with a pre-drafted booking entry ready to copy into the ledger system. Below that are the source documents: invoice, purchase order, receipt, general ledger posting. The structured tab shows a side-by-side comparison — expected versus actual — with green and red indicators so mismatches are impossible to miss.
+When an analyst opens a case, they get the full story on one screen. At the top is the AI's recommendation — what to do and why, with an illustrative adjusting entry, clearly labeled not posting-ready, for finance to validate. Below that are the source documents: invoice, purchase order, receipt, general ledger posting. The structured tab shows a side-by-side comparison — expected versus actual — with green and red indicators so mismatches are impossible to miss.
 
 **Moment 4 — Escalations**
 
@@ -50,7 +50,7 @@ Not every case is straightforward. When the system or an analyst flags something
 
 [SHOW: Settings page showing the data provider options]
 
-Here is how it fits together in plain terms. Transaction data flows in from your financial systems. An AI screening layer matches each transaction against its supporting documents and scores the result. Those scored cases land in this workspace, where your team reviews, resolves, or escalates them. Decisions are tracked, so you have a full audit trail of who closed what and when. The system is designed to sit alongside your existing ledger — it prepares the posting entry, but your team controls the final approval. Today we are running against sample data. The screens are built against a single data interface, and the client for a live backend is already written, so the path from pilot to production is connecting that backend, not rebuilding the workflow.
+Here is how it fits together in plain terms. Transaction data flows in from your financial systems. An AI screening layer matches each transaction against its supporting documents and scores the result. Those scored cases land in this workspace, where your team reviews, resolves, or escalates them. Decisions are tracked, so you have a full audit trail of who closed what and when. The system is designed to sit alongside your existing ledger — it proposes the adjusting entry, but finance validates it and your team controls the final approval. Today we are running against sample data. The screens are built against a single data interface, and the client for a live backend is already written, so the path from pilot to production is connecting that backend, not rebuilding the workflow.
 
 ---
 

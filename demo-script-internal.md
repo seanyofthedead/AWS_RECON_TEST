@@ -20,7 +20,7 @@
 
 ## Framing (read once, then go to the app)
 
-This is a decision workspace for transaction reconciliation. The idea: an AI agent ingests transactions, pulls the supporting documents — invoice, purchase order, receipt, ledger entry — checks whether they agree, scores its confidence, and routes each case. High-confidence matches get a one-click close. Low-confidence cases land in front of a reviewer with everything already assembled, including a draft posting entry the reviewer either accepts, overrides, or escalates. The point is to keep the judgment with a person while removing the assembly work.
+This is a decision workspace for transaction reconciliation. The idea: an AI agent ingests transactions, pulls the supporting documents — invoice, purchase order, receipt, ledger entry — checks whether they agree, scores its confidence, and routes each case. High-confidence matches get a guided close: the reviewer confirms a reason, a rationale and the supporting evidence. Low-confidence cases land in front of a reviewer with everything already assembled, including an illustrative adjusting entry for finance to validate, and the reviewer closes, overrides, or escalates. The point is to keep the judgment with a person while removing the assembly work.
 
 ---
 
@@ -28,7 +28,7 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 *(Screen: **Executive Summary** at `/executive`. Do not click yet — let the page settle.)*
 
-- **Say:** "Top of the page is the KPI strip — total cases, open, reviewed, escalated, resolved. Resolved is zero because we just reset."
+- **Say:** "Top of the page is the KPI strip — total cases, open, reviewed, escalated, resolved. Resolved shows [read the number] — fixture cases that start out resolved after a reset."
 
 *(Point to the KPI cards across the top of the page.)*
 

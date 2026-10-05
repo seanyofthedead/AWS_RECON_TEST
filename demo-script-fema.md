@@ -48,7 +48,7 @@
 
 *(Point to the KPI cards across the top.)*
 
-> Across the top: total cases under review — [VERIFY ON SCREEN: ~88] — and how many are open, reviewed, escalated, and resolved. Resolved is at zero, because we just reset to a clean slate. By the end of this demo, you'll watch that number move.
+> Across the top: total cases under review — [VERIFY ON SCREEN: ~88] — and how many are open, reviewed, escalated, and resolved. Resolved is at [VERIFY ON SCREEN: the seeded count] — cases the sample data starts with. By the end of this demo, you'll watch that number move.
 
 *(Point to the variance threshold control and the banner beneath the cards.)*
 
