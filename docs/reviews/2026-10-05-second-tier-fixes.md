@@ -16,7 +16,7 @@ October 5, 2026. This addresses the findings that [the first-tier pass](2026-10-
 
 ## Open decisions
 
-- Vendor display names: the app maps placeholder vendor IDs to names of real federal contractors, while the evidence PDFs name a fictional supplier. Showing real companies' names beside reconciliation exceptions may be inappropriate in a client demo. Replacing them with fictional names is a product decision.
+- Vendor display names: resolved. The app showed names of real federal contractors for placeholder vendor IDs, while the evidence PDFs named one fictional supplier for every vendor. Both now use the same fictional name per vendor ID, built from Microsoft's fictitious company names, and a test checks every case's invoice, PO, and GL documents against the name on screen.
 - Prior-period approval and the period close schedule need an accounting owner.
 
 ## Verification
