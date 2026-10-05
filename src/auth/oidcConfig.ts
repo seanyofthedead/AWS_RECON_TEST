@@ -77,6 +77,15 @@ export const buildLogoutUrl = (logoutUri: string): string => {
 
 export const cognitoAuthConfig: AuthProviderProps = {
   authority: `https://cognito-idp.${env.VITE_COGNITO_REGION}.amazonaws.com/${env.VITE_COGNITO_USER_POOL_ID}`,
+  metadata: {
+    authorization_endpoint: `${getCognitoHostedUiBase()}/oauth2/authorize`,
+    token_endpoint: `${getCognitoHostedUiBase()}/oauth2/token`,
+    userinfo_endpoint: `${getCognitoHostedUiBase()}/oauth2/userInfo`,
+    revocation_endpoint: `${getCognitoHostedUiBase()}/oauth2/revoke`,
+    end_session_endpoint: `${getCognitoHostedUiBase()}/logout`,
+    jwks_uri: `https://cognito-idp.${env.VITE_COGNITO_REGION}.amazonaws.com/${env.VITE_COGNITO_USER_POOL_ID}/.well-known/jwks.json`,
+    issuer: `https://cognito-idp.${env.VITE_COGNITO_REGION}.amazonaws.com/${env.VITE_COGNITO_USER_POOL_ID}`
+  },
   client_id: env.VITE_COGNITO_USER_POOL_CLIENT_ID ?? "",
   response_type: "code",
   scope: "openid email profile",

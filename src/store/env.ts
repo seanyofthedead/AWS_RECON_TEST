@@ -13,7 +13,7 @@ interface EnvState {
   setSearchTerm: (value: string) => void;
 }
 
-// Only the mock provider exists in this build. Defaulting to "api" because a
+// Only the mock provider is enabled in this build. Defaulting to "api" because a
 // base URL is configured would label fixture data as live data.
 const defaultProvider: ProviderMode = "mock";
 
