@@ -292,6 +292,7 @@ const mapTransactionRow = (
       matchingDecision?.decisionType === "CLOSE_AS_RESOLVED"
         ? matchingDecision.disposition
         : undefined,
+    closedByAnalyst: matchingDecision?.decisionType === "CLOSE_AS_RESOLVED",
     sourceRefs: {
       invoiceId: row.invoice_id || undefined,
       poNumber: row.po_number || undefined,
@@ -952,6 +953,7 @@ export class MockDataProvider implements DataProvider {
       matchEvidence,
       resolvedAt: transaction.status === CaseStatus.Resolved ? transaction.lastUpdated : undefined,
       closureDisposition: closingDecision?.disposition,
+      closedByAnalyst: Boolean(closingDecision),
       residualVariance: closingDecision?.residualVariance
     };
     this.cases.set(transaction.caseId, caseFile);
@@ -1014,11 +1016,13 @@ export class MockDataProvider implements DataProvider {
       reviewed: true,
       lastUpdated: timestamp,
       resolvedAt: isClosed ? timestamp : undefined,
-      closureDisposition: isClosed ? decision.disposition : undefined
+      closureDisposition: isClosed ? decision.disposition : undefined,
+      closedByAnalyst: isClosed
     };
     caseFile.status = status;
     caseFile.resolvedAt = isClosed ? timestamp : undefined;
     caseFile.closureDisposition = isClosed ? decision.disposition : undefined;
+    caseFile.closedByAnalyst = isClosed;
     caseFile.residualVariance = isClosed ? decision.residualVariance : undefined;
     this.cases.set(caseId, caseFile);
     return decision;

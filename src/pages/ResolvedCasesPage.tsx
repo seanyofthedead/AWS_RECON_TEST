@@ -9,6 +9,7 @@ import { ErrorState } from "../components/ErrorState";
 import { InfoTooltip } from "../components/InfoTooltip";
 import { CaseStatus } from "../types/case";
 import { useRoutePerf } from "../hooks/useRoutePerf";
+import { describeClosure } from "../utils/closurePolicy";
 
 export const ResolvedCasesPage = () => {
   useRoutePerf("Resolved");
@@ -144,7 +145,7 @@ export const ResolvedCasesPage = () => {
                   Resolution
                   <InfoTooltip
                     label="Resolution definition"
-                    text="Recorded closure disposition. Seeded demo closures come from fixture data and have no recorded disposition."
+                    text="Recorded closure disposition. Seeded demo closures come from fixture data; analyst closures saved before dispositions were tracked have none recorded."
                   />
                 </span>
               </th>
@@ -195,11 +196,7 @@ export const ResolvedCasesPage = () => {
                   <td className="px-4 py-3">{row.vendor}</td>
                   <td className="px-4 py-3">
                     <span className="text-xs font-semibold text-emerald-700">
-                      {row.closureDisposition === "MATCH_CONFIRMED"
-                        ? "Match confirmed"
-                        : row.closureDisposition === "DOCUMENTED_EXCEPTION"
-                          ? "Documented exception"
-                          : "Seeded demo closure"}
+                      {describeClosure(row)}
                     </span>
                   </td>
                   <td className="px-4 py-3">

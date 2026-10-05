@@ -34,6 +34,8 @@ export interface TransactionRow {
   rootCauseDetail?: string;
   resolvedAt?: string;
   closureDisposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  // True when an analyst decision closed the case, as opposed to fixture data.
+  closedByAnalyst?: boolean;
   // Join references carried by the source invoice row, kept separate from
   // the display transaction ID.
   sourceRefs?: {

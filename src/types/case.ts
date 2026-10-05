@@ -88,5 +88,7 @@ export interface CaseFile {
   matchEvidence?: MatchEvidence;
   resolvedAt?: string;
   closureDisposition?: "MATCH_CONFIRMED" | "DOCUMENTED_EXCEPTION";
+  // True when an analyst decision closed the case, as opposed to fixture data.
+  closedByAnalyst?: boolean;
   residualVariance?: number;
 }

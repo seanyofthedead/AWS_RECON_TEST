@@ -72,7 +72,13 @@ export const evaluateDecision = (input: {
   }
 
   const match = evaluateThreeWayMatch(caseFile.matchEvidence);
-  if (match.status === "fail") {
+  if (match.status === "fail" && caseFile.status === CaseStatus.Escalated) {
+    // Escalation is the route for a failed match, so its reviewer may close
+    // the case, but only as a documented exception.
+    warnings.push(
+      "Three-way match failed; closing records a documented exception for the escalation reviewer."
+    );
+  } else if (match.status === "fail") {
     blockers.push("Three-way match failed; correct the mismatch or escalate.");
   } else if (match.status === "inconclusive") {
     warnings.push(
@@ -90,4 +96,25 @@ export const evaluateDecision = (input: {
     warnings,
     disposition: match.status === "pass" ? "MATCH_CONFIRMED" : "DOCUMENTED_EXCEPTION"
   };
+};
+
+// "Escalate with this fix" on a case that is already escalated only attaches
+// the fix; escalating it again would be rejected.
+export const planEscalateWithFix = (status: CaseStatus) =>
+  status === CaseStatus.Escalated ? "ATTACH_ONLY" : "ESCALATE_THEN_ATTACH";
+
+export const describeClosure = (closure: {
+  closureDisposition?: ClosureDisposition;
+  closedByAnalyst?: boolean;
+}) => {
+  if (closure.closureDisposition === "MATCH_CONFIRMED") {
+    return "Match confirmed";
+  }
+  if (closure.closureDisposition === "DOCUMENTED_EXCEPTION") {
+    return "Documented exception";
+  }
+  // Analyst closures saved before dispositions were recorded have none.
+  return closure.closedByAnalyst
+    ? "Analyst closure (disposition not recorded)"
+    : "Seeded demo closure";
 };

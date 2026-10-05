@@ -23,6 +23,7 @@ import {
   markRecommendationProposed
 } from "../utils/recommendations";
 import { formatCurrency } from "../utils/formatCurrency";
+import { describeClosure, planEscalateWithFix } from "../utils/closurePolicy";
 
 export const CasePage = () => {
   const { caseId = "" } = useParams();
@@ -185,9 +186,15 @@ export const CasePage = () => {
   };
 
   // Escalating with a fix is one operation: the snapshot is attached only
-  // once the escalation itself succeeds.
+  // once the escalation itself succeeds. An escalated case just takes the fix.
   const addRecommendationToEscalation = () => {
-    if (!recommendation) {
+    if (!recommendation || !caseFile) {
+      return;
+    }
+    if (planEscalateWithFix(caseFile.status) === "ATTACH_ONLY") {
+      attachRecommendationToEscalation(caseId, recommendation);
+      addToast({ message: "Fix attached to the escalation", type: "success" });
+      void queryClient.invalidateQueries({ queryKey: ["escalations"] });
       return;
     }
     setAttachOnEscalate(true);
@@ -320,7 +327,7 @@ export const CasePage = () => {
               ) : caseFile.closureDisposition === "MATCH_CONFIRMED" ? (
                 <div>Match confirmed at closure.</div>
               ) : (
-                <div>Seeded demo closure; no recorded disposition.</div>
+                <div>{describeClosure(caseFile)}.</div>
               )}
             </div>
           )}
