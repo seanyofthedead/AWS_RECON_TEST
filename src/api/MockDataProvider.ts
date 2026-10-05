@@ -279,6 +279,7 @@ const mapTransactionRow = (
   const transaction: TransactionRow = {
     transactionId: displayTransactionId,
     sourceTransactionId: normalizedTxId,
+    serviceDate: row.ServiceDate || row.service_date || undefined,
     sourceVendorId: rawVendor,
     quantityDelta:
       canonicalMatch?.feeder_qty && canonicalMatch?.erp_qty
@@ -554,6 +555,17 @@ const readDecisions = (): ReviewDecision[] => {
     return JSON.parse(raw) as ReviewDecision[];
   } catch {
     return [];
+  }
+};
+
+// Serializes decision writes across tabs with the Web Locks API where the
+// browser has it; elsewhere the synchronous critical section suffices.
+const withDecisionLock = async (critical: () => void) => {
+  const locks = (globalThis.navigator as Navigator | undefined)?.locks;
+  if (locks) {
+    await locks.request("recon-review-decisions", async () => critical());
+  } else {
+    critical();
   }
 };
 
@@ -1020,12 +1032,6 @@ export class MockDataProvider implements DataProvider {
       throw new Error("Case not found.");
     }
     const { expectedVersion, ...normalizedRequest } = this.normalizeReviewRequest(request);
-    // Decisions are re-read from storage, so another tab's decision is seen.
-    if (expectedVersion !== undefined && expectedVersion !== caseVersion(caseId)) {
-      throw new Error(
-        "This case changed since you opened it: another tab or user recorded a decision. Reload the case and try again."
-      );
-    }
     const transaction = this.transactions[transactionIndex];
     const caseFile = await this.getCaseFromTransaction(transaction);
     const check = evaluateDecision({
@@ -1048,9 +1054,20 @@ export class MockDataProvider implements DataProvider {
         ? { disposition: check.disposition, residualVariance: transaction.variance }
         : {})
     };
-    const decisions = readDecisions();
-    decisions.push(decision);
-    writeDecisions(decisions);
+    // Version check and append happen together under the decision lock, with
+    // no await between reading and writing storage, so two submissions on the
+    // same version cannot both be recorded.
+    await withDecisionLock(() => {
+      const decisions = readDecisions();
+      const current = decisions.filter((item) => item.caseId === caseId).length;
+      if (expectedVersion !== undefined && expectedVersion !== current) {
+        throw new Error(
+          "This case changed since you opened it: another tab or user recorded a decision. Reload the case and try again."
+        );
+      }
+      decisions.push(decision);
+      writeDecisions(decisions);
+    });
 
     const status = statusForDecision(normalizedRequest.decisionType);
     const isClosed = status === CaseStatus.Resolved;
@@ -1091,6 +1108,11 @@ export class MockDataProvider implements DataProvider {
   // It does not confirm the document's contents support the claim.
   // Row-level result of the baseline load: accepted, rejected, and duplicate
   // rows with reconciled counts and totals.
+  // All load reports so far, baseline first.
+  listIngestionReports(): Record<string, IngestionReport> {
+    return Object.fromEntries(this.ingestionReports);
+  }
+
   getIngestionReport(source = "baseline"): IngestionReport {
     const report = this.ingestionReports.get(source);
     if (!report) {

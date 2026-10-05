@@ -36,7 +36,9 @@ export const BookingEntryTable = ({ entry }: BookingEntryTableProps) => {
         <div>Memo: {entry.memo}</div>
         {entry.period ? (
           <div>
-            Service period {entry.servicePeriod} · Posting period {entry.period} (FY
+            Service period {entry.servicePeriod}
+            {entry.servicePeriodBasis === "posting date" ? " (inferred from the posting date)" : ""} ·
+            Posting period {entry.period} (FY
             {entry.fiscalYear}) · Effective {entry.effectiveDate}
           </div>
         ) : null}

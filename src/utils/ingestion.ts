@@ -121,7 +121,13 @@ export const validateTransactionRows = (
     } else if (!isValidDate(dateText)) {
       reasons.push(`PostingDate is not a valid date: "${dateText}"`);
     }
-    if (confidenceText) {
+    const serviceDateText = pick(row, "ServiceDate", "service_date");
+    if (serviceDateText && !isValidDate(serviceDateText)) {
+      reasons.push(`ServiceDate is not a valid date: "${serviceDateText}"`);
+    }
+    if (!confidenceText) {
+      reasons.push("Confidence is missing");
+    } else {
       const confidence = parseAmount(confidenceText);
       if (confidence === null || confidence < 0 || confidence > 1) {
         reasons.push(`Confidence must be between 0 and 1: "${confidenceText}"`);

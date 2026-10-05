@@ -31,6 +31,9 @@ export const firstOpenPeriodFrom = (period: string) => {
 
 export interface PostingSchedule {
   servicePeriod: string;
+  // Whether the service period comes from a source service date or is only
+  // inferred from the posting date.
+  servicePeriodBasis: "service date" | "posting date";
   period: string;
   effectiveDate: string;
   fiscalYear: number;
@@ -42,7 +45,11 @@ export interface PostingSchedule {
 // period is never backdated: the entry posts on the first day of the first
 // open period and is flagged as a prior-period adjustment. Accruals carry a
 // scheduled reversal on the first day of the following period.
-export const schedulePosting = (serviceDate: string, accrual: boolean): PostingSchedule => {
+export const schedulePosting = (
+  serviceDate: string,
+  accrual: boolean,
+  servicePeriodBasis: PostingSchedule["servicePeriodBasis"] = "service date"
+): PostingSchedule => {
   const servicePeriod = periodOf(serviceDate);
   const period = firstOpenPeriodFrom(servicePeriod);
   const priorPeriodAdjustment = period !== servicePeriod;
@@ -50,6 +57,7 @@ export const schedulePosting = (serviceDate: string, accrual: boolean): PostingS
   const reversalPeriod = nextPeriod(period);
   return {
     servicePeriod,
+    servicePeriodBasis,
     period,
     effectiveDate,
     fiscalYear: fiscalYearOf(effectiveDate),

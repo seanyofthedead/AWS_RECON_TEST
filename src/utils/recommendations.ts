@@ -16,7 +16,7 @@ type RecommendationInput = {
 };
 
 // Bump when templates change so cached recommendations are recomputed.
-export const RULES_VERSION = "2026-10-05";
+export const RULES_VERSION = "2026-10-05.2";
 
 const STORAGE_KEY_PROPOSED = "recon_recommendation_proposed_v1";
 const STORAGE_KEY_ESCALATION = "recon_recommendation_escalation_v1";
@@ -83,6 +83,7 @@ const buildEntry = (options: {
   amount: number;
   memo: string;
   serviceDate?: string;
+  servicePeriodBasis?: "service date" | "posting date";
   accrual?: boolean;
   reverse?: boolean;
 }): BookingEntry => {
@@ -91,7 +92,9 @@ const buildEntry = (options: {
   const credit = options.reverse ? options.debitAccount : options.creditAccount;
   return {
     memo: options.memo,
-    ...(options.serviceDate ? schedulePosting(options.serviceDate, Boolean(options.accrual)) : {}),
+    ...(options.serviceDate
+      ? schedulePosting(options.serviceDate, Boolean(options.accrual), options.servicePeriodBasis)
+      : {}),
     lines: [
       { direction: "DEBIT", account: debit, amount },
       { direction: "CREDIT", account: credit, amount }
@@ -199,7 +202,9 @@ const makeBookedTemplate = (config: {
         creditAccount: config.creditAccount,
         amount,
         memo: buildMemo(config.title, input.transaction),
-        serviceDate: validDate(input.transaction?.postingDate),
+        ...(validDate(input.transaction?.serviceDate)
+          ? { serviceDate: validDate(input.transaction?.serviceDate), servicePeriodBasis: "service date" as const }
+          : { serviceDate: validDate(input.transaction?.postingDate), servicePeriodBasis: "posting date" as const }),
         accrual: config.accrual,
         reverse: !config.fixedDirection && amount < 0
       }),
@@ -499,6 +504,7 @@ const cacheKeyFor = (input: RecommendationInput) => {
       ? [
           tx.variance,
           tx.postingDate,
+          tx.serviceDate,
           tx.vendor,
           tx.transactionId,
           tx.canonicalAiReason,
@@ -540,7 +546,9 @@ export const formatBookingEntry = (entry: BookingEntry) => {
     .map((line) => `${line.direction}: ${line.account} ${line.amount.toFixed(2)}`)
     .join("\n");
   const meta = [
-    entry.servicePeriod ? `Service period: ${entry.servicePeriod}` : null,
+    entry.servicePeriod
+      ? `Service period: ${entry.servicePeriod}${entry.servicePeriodBasis === "posting date" ? " (inferred from the posting date)" : ""}`
+      : null,
     entry.period ? `Posting period: ${entry.period} (FY${entry.fiscalYear})` : null,
     entry.effectiveDate ? `Effective: ${entry.effectiveDate}` : null,
     entry.priorPeriodAdjustment ? "Prior-period adjustment: requires approval" : null,

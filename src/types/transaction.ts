@@ -6,6 +6,8 @@ export interface TransactionRow {
   // Immutable source IDs, as they appear in the source files and PDFs.
   sourceTransactionId?: string;
   sourceVendorId?: string;
+  // Date the goods or services were provided, when the source supplies it.
+  serviceDate?: string;
   // Feeder minus ERP quantity, in units. Distinct from the monetary variance.
   quantityDelta?: number;
   postingDate: string;

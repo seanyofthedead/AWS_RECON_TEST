@@ -79,4 +79,23 @@ describe("posting period and reversal (F07)", () => {
     expect(text).toContain("Prior-period adjustment: requires approval");
     expect(text).toContain("Reversal: 2025-11-01");
   });
+
+  it("uses the source service date, not the posting date, when one is provided", () => {
+    const entry = recommendFix({
+      caseId: "CASE-SVC",
+      transaction: tx({
+        postingDate: "2025-10-03",
+        serviceDate: "2025-09-20",
+        canonicalAiReason: "Timing Difference"
+      })
+    }).bookingEntry!;
+    expect(entry.servicePeriod).toBe("2025-09");
+    expect(entry.servicePeriodBasis).toBe("service date");
+    expect(entry.priorPeriodAdjustment).toBe(true);
+    expect(entry.effectiveDate).toBe("2025-10-01");
+  });
+
+  it("says when the service period is only inferred from the posting date", () => {
+    expect(entryFor("Timing Difference", "2025-10-24").servicePeriodBasis).toBe("posting date");
+  });
 });

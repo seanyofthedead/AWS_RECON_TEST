@@ -74,4 +74,31 @@ describe("decision log (F12)", () => {
     ).rejects.toThrow(/changed since you opened it/);
     expect((await new MockDataProvider().getCase(caseId)).status).toBe(CaseStatus.Escalated);
   });
+
+  it("accepts only one of two concurrent decisions made on the same version", async () => {
+    const tabA = new MockDataProvider();
+    const tabB = new MockDataProvider();
+    const caseId = await firstOpenCaseId(tabA);
+    const version = (await tabA.getCase(caseId)).version;
+    await tabB.getCase(caseId);
+    const results = await Promise.allSettled([
+      tabA.reviewCase(caseId, {
+        decisionType: "ESCALATE",
+        reasonCode: "NEEDS_HUMAN_REVIEW",
+        rationale: RATIONALE,
+        evidenceIds: [],
+        expectedVersion: version
+      }),
+      tabB.reviewCase(caseId, {
+        decisionType: "OVERRIDE",
+        reasonCode: "OTHER",
+        rationale: "Concurrent override from the second tab.",
+        evidenceIds: [],
+        expectedVersion: version
+      })
+    ]);
+    expect(results.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
+    const stored = JSON.parse(localStorage.getItem("recon_review_decisions_v1") ?? "[]");
+    expect(stored.filter((decision: { caseId: string }) => decision.caseId === caseId)).toHaveLength(1);
+  });
 });

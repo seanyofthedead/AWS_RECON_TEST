@@ -31,6 +31,17 @@ describe("transaction ingestion (acceptance check 8)", () => {
     ]);
   });
 
+  it("rejects a missing confidence instead of substituting a default", () => {
+    const report = validateTransactionRows([row({ Confidence: "" })]);
+    expect(report.accepted).toHaveLength(0);
+    expect(report.rejected[0].reasons).toEqual(["Confidence is missing"]);
+  });
+
+  it("validates a service date when the source provides one", () => {
+    const report = validateTransactionRows([row({ ServiceDate: "2025-02-30" })]);
+    expect(report.rejected[0].reasons).toEqual(['ServiceDate is not a valid date: "2025-02-30"']);
+  });
+
   it("rejects confidence outside 0 to 1 and missing transaction IDs", () => {
     const report = validateTransactionRows([
       row({ Confidence: "1.7" }),
@@ -134,5 +145,17 @@ describe("provider ingestion", () => {
     } finally {
       vi.stubGlobal("fetch", realFetch);
     }
+  });
+
+  it("lists the imported batch's report beside the baseline, including after reload", async () => {
+    const provider = new MockDataProvider();
+    await provider.getCases();
+    expect(Object.keys(provider.listIngestionReports())).toEqual(["baseline"]);
+    await provider.importNextBatch(1);
+    const reloaded = new MockDataProvider();
+    await reloaded.getCases();
+    const reports = reloaded.listIngestionReports();
+    expect(Object.keys(reports)).toEqual(["baseline", "batch-1"]);
+    expect(reports["batch-1"].totals.acceptedRows).toBe(12);
   });
 });

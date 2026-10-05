@@ -35,6 +35,7 @@ export type BookingEntry = {
   period?: string;
   // Period in which the underlying activity happened.
   servicePeriod?: string;
+  servicePeriodBasis?: "service date" | "posting date";
   fiscalYear?: number;
   // True when the service period is closed and the entry posts later.
   priorPeriodAdjustment?: boolean;

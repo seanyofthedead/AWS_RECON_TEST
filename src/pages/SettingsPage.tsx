@@ -17,11 +17,11 @@ export const SettingsPage = () => {
   const [resetOpen, setResetOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const dataProvider = useDataProvider();
-  const { data: ingestion, error: ingestionError } = useQuery({
+  const { data: ingestionReports, error: ingestionError } = useQuery({
     queryKey: ["ingestion-report"],
     queryFn: async () => {
       await dataProvider.getCases();
-      return dataProvider.getIngestionReport();
+      return dataProvider.listIngestionReports();
     }
   });
 
@@ -114,30 +114,35 @@ export const SettingsPage = () => {
           <p className="mt-2 text-rose-800">
             Data could not be loaded: {(ingestionError as Error).message}
           </p>
-        ) : ingestion ? (
-          <div className="mt-2 space-y-2">
-            <p>
-              {ingestion.totals.sourceRows} source rows ({formatCurrency(ingestion.totals.sourceAmount)}):{" "}
-              {ingestion.totals.acceptedRows} accepted ({formatCurrency(ingestion.totals.acceptedAmount)}),{" "}
-              {ingestion.totals.rejectedRows} rejected ({formatCurrency(ingestion.totals.rejectedAmount)}),{" "}
-              {ingestion.totals.duplicateRows} duplicates ({formatCurrency(ingestion.totals.duplicateAmount)}).
-              {ingestion.totals.unparseableAmountRows > 0
-                ? ` ${ingestion.totals.unparseableAmountRows} rows had no readable amount.`
-                : ""}
-            </p>
-            {[
-              ...ingestion.parseErrors,
-              ...ingestion.rejected.map(
-                (row) => `Line ${row.line} (${row.transactionId || "no ID"}): ${row.reasons.join("; ")}`
-              ),
-              ...ingestion.duplicates.map(
-                (row) =>
-                  `Line ${row.line} (${row.transactionId}): duplicate of line ${row.firstLine}`
-              )
-            ].map((message) => (
-              <p key={message} className="text-xs text-rose-800">
-                {message}
-              </p>
+        ) : ingestionReports ? (
+          <div className="mt-2 space-y-3">
+            {Object.entries(ingestionReports).map(([source, ingestion]) => (
+              <div key={source} className="space-y-1">
+                <p>
+                  <span className="font-semibold">{source === "baseline" ? "Baseline" : `Imported ${source}`}:</span>{" "}
+                  {ingestion.totals.sourceRows} source rows ({formatCurrency(ingestion.totals.sourceAmount)}):{" "}
+                  {ingestion.totals.acceptedRows} accepted ({formatCurrency(ingestion.totals.acceptedAmount)}),{" "}
+                  {ingestion.totals.rejectedRows} rejected ({formatCurrency(ingestion.totals.rejectedAmount)}),{" "}
+                  {ingestion.totals.duplicateRows} duplicates ({formatCurrency(ingestion.totals.duplicateAmount)}).
+                  {ingestion.totals.unparseableAmountRows > 0
+                    ? ` ${ingestion.totals.unparseableAmountRows} rows had no readable amount.`
+                    : ""}
+                </p>
+                {[
+                  ...ingestion.parseErrors,
+                  ...ingestion.rejected.map(
+                    (row) => `Line ${row.line} (${row.transactionId || "no ID"}): ${row.reasons.join("; ")}`
+                  ),
+                  ...ingestion.duplicates.map(
+                    (row) =>
+                      `Line ${row.line} (${row.transactionId}): duplicate of line ${row.firstLine}`
+                  )
+                ].map((message) => (
+                  <p key={message} className="text-xs text-rose-800">
+                    {message}
+                  </p>
+                ))}
+              </div>
             ))}
           </div>
         ) : (

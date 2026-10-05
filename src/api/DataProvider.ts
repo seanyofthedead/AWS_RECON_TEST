@@ -19,6 +19,7 @@ export interface DataProvider {
   setActor(actor: { id: string; name: string } | null): void;
   // Row-level load report ("baseline", or "batch-1" once imported).
   getIngestionReport(source?: string): IngestionReport;
+  listIngestionReports(): Record<string, IngestionReport>;
   importNextBatch(
     batchId: number
   ): Promise<{ importedCount: number; caseIds: string[] }>;
