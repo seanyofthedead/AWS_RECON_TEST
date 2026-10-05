@@ -12,7 +12,7 @@
 2. *Sign in via Cognito with your demo credentials.*
 3. *Click **Settings** in the top navigation.*
 4. *Confirm **Data provider** is set to **Mock provider (in-browser CSV)**.*
-5. *Click **Reset demo state** and confirm. The app reloads with Resolved = 0 and ~88 baseline cases.*
+5. *Click **Reset demo state** and confirm. The app reloads with ~88 baseline cases. Some fixture cases start out already resolved — note the Resolved count.*
 6. *Click **Executive Summary** in the top navigation — your starting screen.*
 7. *Set browser zoom (Ctrl/Cmd + or –) so the KPI cards and charts fill the shared screen.*
 
@@ -78,11 +78,11 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 *(Click **Resolved** in the top navigation.)*
 
-- **Say:** "A moment ago this was empty. Now it shows the case we just closed: vendor, resolution, confidence, timestamp."
+- **Say:** "Alongside the fixture cases that were already resolved, here's the one we just closed: vendor, resolution, confidence, timestamp."
 
 *(Point to the table rows — specifically the case just closed.)*
 
-- **Say:** "Searchable by vendor, case, or date. Every row links back to its evidence — nothing closes in the dark."
+- **Say:** "Searchable by vendor, transaction, or case ID, with a last-seven-days filter. Every row links back to its evidence — nothing closes in the dark."
 
 - **Notice:** State persists across navigation. In mock mode that's localStorage in your browser; in API mode it's the backend.
 
@@ -152,19 +152,19 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 
 - **Say:** "Total cases just jumped from ~88 to ~100. New cases arrive already triaged and scored. The workload scales; the manual effort doesn't."
 
-- **Notice:** Backed by `ui_transactions_batch_1.csv` in mock mode; same UI works against `/api/import-next-batch` when the API provider is active.
+- **Notice:** Backed by `ui_transactions_batch_1.csv` in mock mode; `ApiDataProvider` posts the same action to `/api/batch/import` once API mode is enabled.
 
 ---
 
-## Step 7 — Settings & provider toggle (engineering aside)
+## Step 7 — Settings & data providers (engineering aside)
 
 *(Click **Settings** in the top navigation.)*
 
 - **Say:** "Two providers behind the same `DataProvider` interface: a Mock provider that parses CSV in the browser, and an API provider that hits `/api/*`."
 
-*(Point to the **Data provider** toggle on the Settings page.)*
+*(Point to the **Data provider** options on the Settings page. The API option is greyed out.)*
 
-- **Say:** "Switching is a runtime toggle in mock mode and an env var (`VITE_API_BASE_URL`) at build time. Same screens, same workflow — the data source is a configuration concern, not a rewrite."
+- **Say:** "The API provider is groundwork: the client and `/api/*` calls exist, but API mode is disabled in this build until there's a backend to serve it. Same screens, same workflow once it's on."
 
 - **Notice:** Engineers often ask about auth (Cognito via OIDC) and state (Zustand for UI, TanStack Query for server). Mention both if pressed.
 
@@ -173,7 +173,7 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 ## Q&A prep — likely internal questions
 
 **1. "Is any of this real, or is it all mocked?"**
-> The UI is real and production-shaped — deployed on Amplify, served via Cognito sign-in. Data is mock today: CSVs in `public/data/` parsed in-browser via Papaparse. There's an `ApiDataProvider` wired and ready; flipping `VITE_API_BASE_URL` at build time points the same app at a backend. Both providers implement the same seven-method interface so they stay in sync.
+> The UI is real and production-shaped — deployed on Amplify, served via Cognito sign-in. Data is mock today: CSVs in `public/data/` parsed in-browser via Papaparse. There's an `ApiDataProvider` written against `/api/*`, but API mode is disabled in Settings until a backend exists. Both providers implement the same `DataProvider` interface so they stay in sync.
 
 **2. "What's the stack?"**
 > React + TypeScript SPA, Vite, Tailwind 3, React Router v6, TanStack Query for data state, Zustand for UI state, react-oidc-context for Cognito auth. Hosted on AWS Amplify. No component library — everything is built on Tailwind.
@@ -194,7 +194,7 @@ This is a decision workspace for transaction reconciliation. The idea: an AI age
 1. *Click **Settings** in the top navigation.*
 2. *Confirm **Data provider** is set to **Mock provider (in-browser CSV)**.*
 3. *Click **Reset demo state** and confirm in the dialog.*
-4. *The app reloads with Resolved = 0 and the baseline ~88 cases restored.*
+4. *The app reloads with the baseline ~88 cases and the fixture-resolved cases restored.*
 5. *Click **Executive Summary** in the top navigation and hand off.*
 
 If the next demoer wants a fully clean session (no cached sign-in), have them open the Amplify URL in a fresh incognito window instead.

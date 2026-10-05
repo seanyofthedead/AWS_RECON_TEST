@@ -26,7 +26,7 @@
 
 1. *Open the app and sign in. Go to **Settings**.*
 2. *Confirm the data provider is **Mock provider (in-browser CSV)**.*
-3. *Click **Reset demo state**, confirm. The app reloads to a clean baseline (0 resolved cases).*
+3. *Click **Reset demo state**, confirm. The app reloads to the clean baseline. Some fixture cases start out already resolved — note the Resolved count so you can point to the change later.*
 4. *Navigate to **Executive Summary** — your starting screen.*
 5. *Set browser zoom so the KPI cards and charts are readable on the shared screen.*
 
@@ -92,7 +92,7 @@
 
 *(Click **Resolved** in the top navigation.)*
 
-> Here's where that case just landed. A moment ago this screen was empty — now it shows what we closed: vendor, how it was resolved, confidence, and a timestamp. This is the audit trail. For an organization answering to inspectors general, that matters — every closed case is searchable by vendor, case, or date, and every one links back to its evidence. Nothing is closed in the dark.
+> Here's where that case just landed. Alongside the cases that were already resolved, it now shows the one we just closed: vendor, how it was resolved, confidence, and a timestamp. This is the audit trail. For an organization answering to inspectors general, that matters — every closed case is searchable by vendor, transaction, or case ID, and every one links back to its evidence. Nothing is closed in the dark.
 
 ---
 
@@ -152,9 +152,9 @@
 
 > The dashboard updates: total cases just jumped from about 88 to 100. Every new case arrives already triaged, scored, and ready for a reviewer. The workload scales; the manual effort doesn't.
 
-*(Optional — only if asked about deployment. Click **Settings**, point to the Data provider toggle.)*
+*(Optional — only if asked about deployment.)*
 
-> Today this runs on self-contained sample data. In production, the same screens point at your live financial systems — a configuration change, not a rebuild.
+> Today this runs on self-contained sample data. The screens are built against a single data interface, so connecting them to your live financial systems means building that backend connection — the workflow you've seen stays the same.
 
 ---
 
@@ -175,10 +175,10 @@
 > Every recommendation carries an explicit confidence level, and low-confidence cases are routed to a human instead of being auto-closed — you saw that in the hard case. The system is built to say "I'm not sure" out loud, and every closed case links back to the underlying evidence.
 
 **3. "What's the audit trail? Could we defend a closed case to an inspector general?"**
-> Yes. Every resolved case records who decided it and when, and links to the invoice, purchase order, receipt, and ledger posting behind it. The Resolved view is searchable by vendor, case, or date.
+> Yes. Every resolved case records who decided it and when, and links to the invoice, purchase order, receipt, and ledger posting behind it. The Resolved view is searchable by vendor, transaction, or case ID, and can be narrowed to the last seven days.
 
 **4. "Where does the data come from, and is it secure?"**
-> Today's demo runs on self-contained sample data. In production, the same interface connects to your financial systems through a backend API, behind authenticated sign-in. Switching the data source is a configuration change — the workflow doesn't change.
+> Today's demo runs on self-contained sample data. In production, the same interface connects to your financial systems through a backend API, behind authenticated sign-in. That backend connection is the next build step — the workflow doesn't change.
 
 **5. "What would a pilot look like, and how long to stand up?"**
-> A pilot scopes to one transaction type and one program's data. The application layer is already built and the production path is a configuration change rather than a rebuild, so the work is connecting to your data sources and validating against your controls. [FILL IN: your specific pilot timeline and scope.]
+> A pilot scopes to one transaction type and one program's data. The application layer is already built and the screens won't need to be rebuilt, so the work is connecting to your data sources and validating against your controls. [FILL IN: your specific pilot timeline and scope.]

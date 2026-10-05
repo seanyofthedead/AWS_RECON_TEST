@@ -48,9 +48,9 @@ Not every case is straightforward. When the system or an analyst flags something
 
 ## 4. Architecture at a Glance (60 sec)
 
-[SHOW: Settings page showing the data provider toggle]
+[SHOW: Settings page showing the data provider options]
 
-Here is how it fits together in plain terms. Transaction data flows in from your financial systems. An AI screening layer matches each transaction against its supporting documents and scores the result. Those scored cases land in this workspace, where your team reviews, resolves, or escalates them. Decisions are tracked, so you have a full audit trail of who closed what and when. The system is designed to sit alongside your existing ledger — it prepares the posting entry, but your team controls the final approval. Today we are running against sample data; flipping this toggle connects the same interface to a live backend, which means the path from pilot to production is a configuration change, not a rebuild.
+Here is how it fits together in plain terms. Transaction data flows in from your financial systems. An AI screening layer matches each transaction against its supporting documents and scores the result. Those scored cases land in this workspace, where your team reviews, resolves, or escalates them. Decisions are tracked, so you have a full audit trail of who closed what and when. The system is designed to sit alongside your existing ledger — it prepares the posting entry, but your team controls the final approval. Today we are running against sample data. The screens are built against a single data interface, and the client for a live backend is already written, so the path from pilot to production is connecting that backend, not rebuilding the workflow.
 
 ---
 
