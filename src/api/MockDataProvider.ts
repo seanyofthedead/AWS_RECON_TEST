@@ -30,6 +30,7 @@ import {
 } from "../utils/demoIdentities";
 import { formatCurrency } from "../utils/formatCurrency";
 import { evaluateDecision } from "../utils/closurePolicy";
+import { IngestionReport, validateTransactionRows } from "../utils/ingestion";
 
 interface CanonicalVarianceRow {
   transactionid?: string;
@@ -502,9 +503,14 @@ const dedupeTransactions = (rows: TransactionRow[]) => {
   return deduped;
 };
 
-const parseCsv = async <T,>(url: string) => {
+// A failed fetch is an error, not an empty file; parser errors are returned
+// so the ingestion report can show them.
+const parseCsvWithErrors = async <T,>(url: string) => {
   const text = await measureDevAsync(`fetch ${url}`, async () => {
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to load ${url}: HTTP ${response.status}`);
+    }
     return response.text();
   });
   return measureDev(`parse ${url}`, () => {
@@ -512,9 +518,14 @@ const parseCsv = async <T,>(url: string) => {
       header: true,
       skipEmptyLines: true
     });
-    return result.data;
+    const errors = result.errors.map(
+      (error) => `${url} row ${error.row ?? "?"}: ${error.message}`
+    );
+    return { data: result.data, errors };
   });
 };
+
+const parseCsv = async <T,>(url: string) => (await parseCsvWithErrors<T>(url)).data;
 
 const getConfidenceBand = (score: number): ConfidenceBand => {
   if (score >= 0.82) {
@@ -571,6 +582,7 @@ export class MockDataProvider implements DataProvider {
   private cases = new Map<string, CaseFile>();
   private canonicalByTxId = new Map<string, CanonicalVarianceRow>();
   private importedBatches = new Map<number, ImportedBatch>();
+  private ingestionReports = new Map<string, IngestionReport>();
 
   static getInstance() {
     if (!MockDataProvider.instance) {
@@ -583,10 +595,17 @@ export class MockDataProvider implements DataProvider {
     if (this.initialized) {
       return;
     }
-    const [transactions, canonicalRaw] = await Promise.all([
-      parseCsv<Record<string, string>>("/data/ui_transactions.csv"),
+    const [transactionFile, canonicalRaw] = await Promise.all([
+      parseCsvWithErrors<Record<string, string>>("/data/ui_transactions.csv"),
       parseCsv<Record<string, string>>("/data/canonical_variances.csv")
     ]);
+    const baselineReport = validateTransactionRows(transactionFile.data, {
+      minCaseIndex: 13,
+      maxCaseIndex: 100,
+      parseErrors: transactionFile.errors
+    });
+    this.ingestionReports.set("baseline", baselineReport);
+    const transactions = baselineReport.accepted;
     const canonicalNormalized = canonicalRaw.map((row) => {
       const normalized = normalizeRecord(row);
       const raw = row as Record<string, string>;
@@ -659,9 +678,7 @@ export class MockDataProvider implements DataProvider {
     );
     const batchOne = this.importedBatches.get(1);
     if (batchOne) {
-      const batchRows = await parseCsv<Record<string, string>>(
-        "/data/ui_transactions_batch_1.csv"
-      );
+      const batchRows = await this.loadBatchRows();
       const existingCaseIds = new Set(this.transactions.map((item) => item.caseId));
       const importTimestamp = batchOne.importedAt;
       const batchTransactions = dedupeTransactions(
@@ -1042,6 +1059,30 @@ export class MockDataProvider implements DataProvider {
 
   // Confirms the claim cites this evidence and the evidence has a document.
   // It does not confirm the document's contents support the claim.
+  // Row-level result of the baseline load: accepted, rejected, and duplicate
+  // rows with reconciled counts and totals.
+  getIngestionReport(source = "baseline"): IngestionReport {
+    const report = this.ingestionReports.get(source);
+    if (!report) {
+      throw new Error(`No ingestion report for ${source}.`);
+    }
+    return report;
+  }
+
+  // Batch 1 rows that pass validation; the report is kept as "batch-1".
+  private async loadBatchRows() {
+    const file = await parseCsvWithErrors<Record<string, string>>(
+      "/data/ui_transactions_batch_1.csv"
+    );
+    const report = validateTransactionRows(file.data, {
+      minCaseIndex: 1,
+      maxCaseIndex: 12,
+      parseErrors: file.errors
+    });
+    this.ingestionReports.set("batch-1", report);
+    return report.accepted;
+  }
+
   async verifyLink(request: { caseId: string; claimId: string; evidenceId: string }) {
     await this.initialize();
     const transaction = this.transactions.find((item) => item.caseId === request.caseId);
@@ -1070,9 +1111,7 @@ export class MockDataProvider implements DataProvider {
     }
 
     const decisions = readDecisions();
-    const batchRows = await parseCsv<Record<string, string>>(
-      "/data/ui_transactions_batch_1.csv"
-    );
+    const batchRows = await this.loadBatchRows();
     const importTimestamp = new Date().toISOString();
     const batchTransactions = dedupeTransactions(
       mapTransactionRows(

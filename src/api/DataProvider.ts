@@ -2,6 +2,7 @@ import { CaseFile } from "../types/case";
 import { TransactionRow } from "../types/transaction";
 import { ReviewDecision, ReviewRequest } from "../types/review";
 import { ReviewerPacket } from "../types/queue";
+import { IngestionReport } from "../utils/ingestion";
 
 export interface DataProvider {
   getCases(): Promise<TransactionRow[]>;
@@ -14,6 +15,8 @@ export interface DataProvider {
     claimId: string;
     evidenceId: string;
   }): Promise<{ ok: boolean }>;
+  // Row-level load report ("baseline", or "batch-1" once imported).
+  getIngestionReport(source?: string): IngestionReport;
   importNextBatch(
     batchId: number
   ): Promise<{ importedCount: number; caseIds: string[] }>;
