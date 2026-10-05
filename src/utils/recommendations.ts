@@ -498,7 +498,15 @@ const cacheKeyFor = (input: RecommendationInput) => {
     input.caseId,
     input.aiReason ?? "",
     tx
-      ? [tx.variance, tx.postingDate, tx.canonicalAiReason, tx.canonicalVarianceCategory, tx.rootCauseBucket].join("|")
+      ? [
+          tx.variance,
+          tx.postingDate,
+          tx.vendor,
+          tx.transactionId,
+          tx.canonicalAiReason,
+          tx.canonicalVarianceCategory,
+          tx.rootCauseBucket
+        ].join("|")
       : ""
   ].join("::");
 };
@@ -542,15 +550,28 @@ export const formatBookingEntry = (entry: BookingEntry) => {
   return [entry.memo, meta, lines].filter(Boolean).join("\n");
 };
 
+// Markers are stamped with the rules version, so a recommendation proposed
+// under earlier templates is not shown as proposed after the templates change.
 export const markRecommendationProposed = (caseId: string, recommendationId: string) => {
   const map = readStorageMap(STORAGE_KEY_PROPOSED);
-  map[caseId] = recommendationId;
+  map[caseId] = JSON.stringify({ id: recommendationId, rulesVersion: RULES_VERSION });
   writeStorageMap(STORAGE_KEY_PROPOSED, map);
 };
 
-export const getProposedRecommendationId = (caseId: string) => {
-  const map = readStorageMap(STORAGE_KEY_PROPOSED);
-  return map[caseId];
+export const getProposedRecommendationId = (caseId: string): string | undefined => {
+  const raw = readStorageMap(STORAGE_KEY_PROPOSED)[caseId];
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const marker = JSON.parse(raw) as { id?: unknown; rulesVersion?: unknown };
+    return marker.rulesVersion === RULES_VERSION && typeof marker.id === "string"
+      ? marker.id
+      : undefined;
+  } catch {
+    // Legacy markers stored a bare ID with no rules version.
+    return undefined;
+  }
 };
 
 // An escalation snapshot is an audit record of what the analyst escalated, so

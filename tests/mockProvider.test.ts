@@ -264,4 +264,26 @@ describe("fixture match scenarios", () => {
     expect(match.receiptNote).toMatch(/No receipt/);
     expect(caseFile.evidence.find((e) => e.title === "Receipt")?.url).toBeUndefined();
   });
+
+  it("does not accept a missing-record placeholder as closure evidence", async () => {
+    const provider = new MockDataProvider();
+    const caseFile = await provider.getCase("CASE-00021");
+    const receipt = caseFile.evidence.find((e) => e.title === "Receipt")!;
+    await expect(
+      provider.reviewCase("CASE-00021", {
+        decisionType: "CLOSE_AS_RESOLVED",
+        reasonCode: "OTHER",
+        rationale: RATIONALE,
+        evidenceIds: [receipt.id]
+      })
+    ).rejects.toThrow(/on file/);
+    const invoice = caseFile.evidence.find((e) => e.title === "Invoice")!;
+    const decision = await provider.reviewCase("CASE-00021", {
+      decisionType: "CLOSE_AS_RESOLVED",
+      reasonCode: "OTHER",
+      rationale: RATIONALE,
+      evidenceIds: [receipt.id, invoice.id]
+    });
+    expect(decision.disposition).toBe("DOCUMENTED_EXCEPTION");
+  });
 });

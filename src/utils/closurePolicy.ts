@@ -61,11 +61,14 @@ export const evaluateDecision = (input: {
     return { allowed: blockers.length === 0, blockers, warnings };
   }
 
-  const knownEvidence = new Set(caseFile.evidence.map((item) => item.id));
+  const knownEvidence = new Map(caseFile.evidence.map((item) => [item.id, item]));
   if (input.evidenceIds.length === 0) {
     blockers.push("Attach at least one evidence document.");
   } else if (input.evidenceIds.some((id) => !knownEvidence.has(id))) {
     blockers.push("Attached evidence does not belong to this case.");
+  } else if (!input.evidenceIds.some((id) => knownEvidence.get(id)?.url)) {
+    // A placeholder for a missing record (e.g. no receipt) is not a document.
+    blockers.push("Attach at least one evidence document that is on file.");
   }
 
   const match = evaluateThreeWayMatch(caseFile.matchEvidence);

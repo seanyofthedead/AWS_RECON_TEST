@@ -4,6 +4,8 @@ import {
   RULES_VERSION,
   attachRecommendationToEscalation,
   getEscalationRecommendation,
+  getProposedRecommendationId,
+  markRecommendationProposed,
   deriveRootCause,
   getRecommendationsForCase,
   recommendFix
@@ -135,5 +137,40 @@ describe("zero variance", () => {
       transaction: { variance: 0, canonicalAiReason: "Timing Difference" } as never
     });
     expect(rec.bookingEntry).toBeUndefined();
+  });
+});
+
+describe("recommendation cache and proposed markers", () => {
+  it("recomputes the memo when the vendor or transaction ID changes", () => {
+    // rootCauseBucket is set up front because deriving it writes it onto the row.
+    const base = tx({
+      caseId: "CASE-MEMO",
+      canonicalAiReason: "Duplicate Transaction",
+      rootCauseBucket: "Duplicate Transaction"
+    });
+    const first = getRecommendationsForCase({ caseId: "CASE-MEMO", transaction: base })[0];
+    const renamed = getRecommendationsForCase({
+      caseId: "CASE-MEMO",
+      transaction: { ...base, vendor: "Corrected Vendor", transactionId: "TX-9000002" }
+    })[0];
+    expect(first.bookingEntry?.memo).toContain("Demo Vendor");
+    expect(renamed.bookingEntry?.memo).toContain("Corrected Vendor");
+    expect(renamed.bookingEntry?.memo).toContain("TX-9000002");
+  });
+
+  it("keeps proposed markers only under the current rules version", () => {
+    markRecommendationProposed("CASE-P1", "rec-duplicate");
+    expect(getProposedRecommendationId("CASE-P1")).toBe("rec-duplicate");
+
+    const key = "recon_recommendation_proposed_v1";
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        "CASE-LEGACY": "rec-missing-receipt",
+        "CASE-OLD": JSON.stringify({ id: "rec-missing-receipt", rulesVersion: "2026-10-04" })
+      })
+    );
+    expect(getProposedRecommendationId("CASE-LEGACY")).toBeUndefined();
+    expect(getProposedRecommendationId("CASE-OLD")).toBeUndefined();
   });
 });
