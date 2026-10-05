@@ -16,6 +16,8 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [verifiedIds, setVerifiedIds] = useState<Record<string, boolean>>({});
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // Only move focus after keyboard navigation; focusing on mount scrolls the page.
+  const keyboardNavRef = useRef(false);
 
   useEffect(() => {
     const stillExists = caseFile.claims.some((claim) => claim.id === selectedClaimId);
@@ -25,6 +27,10 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
   }, [caseFile, selectedClaimId]);
 
   useEffect(() => {
+    if (!keyboardNavRef.current) {
+      return;
+    }
+    keyboardNavRef.current = false;
     const index = caseFile.claims.findIndex((claim) => claim.id === selectedClaimId);
     if (index >= 0) {
       buttonRefs.current[index]?.focus();
@@ -84,6 +90,7 @@ export const ClaimsPanel = ({ caseFile }: ClaimsPanelProps) => {
     if (caseFile.claims.length === 0) {
       return;
     }
+    keyboardNavRef.current = true;
     if (event.key === "ArrowDown") {
       event.preventDefault();
       const nextIndex = (index + 1) % caseFile.claims.length;
