@@ -776,8 +776,8 @@ export class MockDataProvider implements DataProvider {
       `${transaction.caseId}-evidence-receipt`,
       `${transaction.caseId}-evidence-gl`
     ];
-    // Legacy evidence paths and evidence_index.json are deprecated.
-    // Evidence links are now derived deterministically by case index.
+    // Evidence links are derived by case index; public/evidence/manifest.json
+    // lists the same files.
     const evidenceLinks = caseIndex != null ? resolveEvidenceLinks(caseIndex) : {};
     const invoiceUrl = evidenceLinks.invoice;
     const poUrl = evidenceLinks.po;
