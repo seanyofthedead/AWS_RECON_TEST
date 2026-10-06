@@ -21,7 +21,7 @@ Names and spellings come from the meeting invite (To and Cc lines), which supers
 |---|---|---|---|
 | Sean Pedersen | Guidehouse | Presenter, built the demo | *(named)*, self-introduction at 6:16 (Speaker 8) |
 | Felice Fava | Guidehouse | Opened the meeting and set the agenda | *(named)*: "thanks for all that, Felice" (6:16) |
-| Melanie Geesaman | Contractor (marked CTR on the invite); Guidehouse side (inferred) | Kicked off ("the team is excited to share some of the tools") | *(named)* at 1:39. "Melody" at 2:13 is probably her |
+| Melanie Geesaman | Contractor (marked CTR on the invite); Guidehouse side (inferred) | Kicked off ("the team is excited to share some of the tools") | *(named)* at 1:39. "Melody" at 2:13 is probably the same person |
 | Gina Oliva | Contractor (marked CTR on the invite); Guidehouse side (inferred) | Attendee | *(named)* at 2:34, introduced by a Guidehouse speaker ("We've got Gina here, myself") |
 | Speaker 11 | Guidehouse (inferred) | Said the FEMA S/4HANA work went live "on Thursday" | *(uncertain)*: Felice, Gina or Melanie |
 | Traci Billings (transcribed "Tracy") | ICE | Owns AP intake (inferred). Asked the intake questions | *(by content)*. Laurie says "as Tracy was saying" (25:02); David says "getting Tracy and the team some relief" (35:57) |
@@ -104,7 +104,7 @@ The invite also went to the ICE CFO scheduling mailbox. The transcript has at le
 
 | Stakeholder | Role | Concerns raised | What they need to see to say yes | Decision role |
 |---|---|---|---|---|
-| **Traci** *(by content)* | AP intake owner (inferred) | Where the data comes from (16:30). Whether it sits on top of current work (16:40). Fit to intake rather than reconciliation (17:03). "if this is really setting us down that right path to help automate that piece of the pie" (18:14) | Her own kinds of invoices, taken from a mailbox, landing as correct FileOnQ-ready records, with less technician effort and fewer QC passes (inferred) | Co-owns prototype design with Laurie: "I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping" (38:53) |
+| **Traci** *(by content)* | AP intake owner (inferred) | Where the data comes from (16:30). Whether it sits on top of current work (16:40). Fit to intake rather than reconciliation (17:03). "if this is really setting us down that right path to help automate that piece of the pie" (18:14) | The team's own kinds of invoices, taken from a mailbox, landing as correct FileOnQ-ready records, with less technician effort and fewer QC passes (inferred) | Co-owns prototype design with Laurie: "I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping" (38:53) |
 | **Laurie** | OFM chief of staff; designed the original invoice consolidation process (24:23) | Whether we can build an interface that creates or updates records (24:40). Validity checks with a confidence level (25:02) | The quick win from 25:02: PDF in, fields filled, validity confidence, FileOnQ record created with the PDF attached | Process authority and co-owner of prototyping (38:53). David: "She can design it better again" (36:41) |
 | **David** | Senior leader (inferred) | Vendor variety and the limits of bots (30:09). Labor and rework (36:20). FileOnQ licensing cost (31:23). Accuracy at first run (32:06, *(uncertain)*) | A project plan, CONOPS and "a bill" (38:53). A credible labor-reduction story. An honest accuracy answer | **Decides with Beth**: "so Beth and I can sit down, review it, and figure out if, when, and how" (34:58) |
 | **Beth** | Senior leader (inferred) | "we definitely need help" (39:46) | Same package as David (inferred) | **Co-decider** (34:58). Also the contact for a separate budget-intelligence session (40:00) |
@@ -112,7 +112,7 @@ The invite also went to the ICE CFO scheduling mailbox. The transcript has at le
 | **AP technicians** | Process users today; likely reviewers in the PoC | Not present | A review screen that is faster than manual entry (inferred) | Users and SME labor (34:32) |
 | **CORs / field approvers** | Downstream receiving and acceptance (19:51) | Not present | Unchanged handoff, or better data at handoff (inferred) | Out of PoC scope |
 | **Holly, Mr. Bovich** | Department level (inferred from 38:26: "that's up at the department level") | How this works with "fiber" (37:58; unclear term) and whether to offer it to components (38:41) | Unknown | Possible department-wide sponsors. Not decision-makers for this AP PoC |
-| **Unidentified "audit perspective" speaker** (37:36) | ICE, possibly audit or internal controls. Could be David, Beth or Cathaleen Winter if she attended *(uncertain)* | Prefers to focus on AP now | — | Influencer |
+| **Unidentified "audit perspective" speaker** (37:36) | ICE, possibly audit or internal controls. Could be David, Beth or Cathaleen Winter, if present *(uncertain)* | Prefers to focus on AP now | — | Influencer |
 | **Shilonda Holmes, Cathaleen Winter** | ICE (inferred). On the invite (Cathaleen on Cc), roles unknown. Shilonda was out of office (1:01) | None recorded | Unknown | Keep them on the follow-up distribution. Confirm roles (§10) |
 
 ---
