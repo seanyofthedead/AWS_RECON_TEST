@@ -5,7 +5,7 @@ Source: Otter.ai export of the client demo held October 5, 2026 (`Note_20261005_
 ## How to read this document
 
 - **Timestamps** are the start of the Otter segment that contains the quote (m:ss). Long segments hold several sentences, so a quote may appear some time after its timestamp.
-- **Quotes are verbatim from the export**, including transcription errors. Where a word is clearly misheard, the likely meaning is given in brackets and marked as an interpretation. "File on Q", "File and Queue", "filing queue", "file loan Q", "Phyllom Q" and "file queue" are all read as **FileOnQ**.
+- **Quotes are verbatim from the export**, including transcription errors. Where a word is clearly misheard, the likely meaning is given in brackets and marked as an interpretation. "File on Q", "File and Queue", "filing queue", "file loan Q", "Phyllom Q" and "file queue" are all read as **FileOnQ**. Outside quotes, people's names use the meeting invite's spellings (Traci, Laurie); inside quotes they keep the transcript's spellings (Tracy, Lori).
 - **Speaker labels are unreliable.** Otter labelled most segments "Unknown", and its numbered labels drift: one label sometimes covers two people, and one person sometimes gets two labels. Each attribution below is based on what the speaker says or on someone addressing them by name. Every attribution carries one of three tags: *(named)* means someone addresses the speaker by name or the speaker introduces themselves; *(by content)* means the speaker is inferred with reasonable confidence; *(uncertain)* is used otherwise.
 - **Stated** means the client said it in the meeting. **Inferred** means it is our reading and needs confirmation.
 - **Three kinds of capability are kept apart:**
@@ -15,29 +15,34 @@ Source: Otter.ai export of the client demo held October 5, 2026 (`Note_20261005_
 
 ### Who was in the room (attribution key)
 
+Names and spellings come from the meeting invite (To and Cc lines), which supersedes the transcript's spellings. Roles are not on the invite; they come from the transcript and are marked stated or inferred.
+
 | Person | Side | Role as stated or inferred | Basis |
 |---|---|---|---|
 | Sean Pedersen | Guidehouse | Presenter, built the demo | *(named)*, self-introduction at 6:16 (Speaker 8) |
-| Felice | Guidehouse | Opened the meeting and set the agenda | *(named)*: "thanks for all that, Felice" (6:16) |
-| Melanie | Guidehouse (inferred) | Kicked off ("the team is excited to share some of the tools") | *(named)* at 1:39; her affiliation is *(by content)* |
-| Gina | Guidehouse | Attendee | *(named)* at 2:34 |
-| Speaker 11 | Guidehouse (inferred) | Said the FEMA S/4HANA work went live "on Thursday" | *(uncertain)* |
-| Tracy | Client | Owns AP intake (inferred). Asked the intake questions | *(by content)*. Lori says "as Tracy was saying" (25:02); David says "getting Tracy and the team some relief" (35:57) |
-| Lori Nadu (spelling unverified; also transcribed "Lauren") | Client | "chief of staff here at OFM", "built the original invoice consolidation process 20 years ago" (24:23) | *(named)*, Speaker 12 |
-| David | Client | Senior leader. Co-decides with Beth (inferred) | *(named)*: "David, did you have a question?" (30:06); then Speaker 13 |
-| Beth | Client | Co-decides with David. Raised budget intelligence | *(named)* at 39:38 and 39:46 |
-| Holly, "Mr. Bovich" (spelling unverified) | Department level (inferred) | Separate meeting in about two weeks | Mentioned at 37:58; not present |
-| Shalanda | Unknown | On the invite, out of office | 1:01 |
-| Ramatu, Rolf | Client (inferred) | Possible attendees of the budget-intelligence session | 40:30 |
+| Felice Fava | Guidehouse | Opened the meeting and set the agenda | *(named)*: "thanks for all that, Felice" (6:16) |
+| Melanie Geesaman | Contractor (marked CTR on the invite); Guidehouse side (inferred) | Kicked off ("the team is excited to share some of the tools") | *(named)* at 1:39. "Melody" at 2:13 is probably her |
+| Gina Oliva | Contractor (marked CTR on the invite); Guidehouse side (inferred) | Attendee | *(named)* at 2:34, introduced by a Guidehouse speaker ("We've got Gina here, myself") |
+| Speaker 11 | Guidehouse (inferred) | Said the FEMA S/4HANA work went live "on Thursday" | *(uncertain)*: Felice, Gina or Melanie |
+| Traci Billings (transcribed "Tracy") | ICE | Owns AP intake (inferred). Asked the intake questions | *(by content)*. Laurie says "as Tracy was saying" (25:02); David says "getting Tracy and the team some relief" (35:57) |
+| Laurie Nadeau (transcribed "Lori Nadu", "Lori", "Lauren") | ICE | "chief of staff here at OFM", "built the original invoice consolidation process 20 years ago" (24:23) | *(named)*, Speaker 12 |
+| David Dalenberg | ICE | Senior leader. Co-decides with Beth (inferred) | *(named)*: "David, did you have a question?" (30:06); then Speaker 13 |
+| Beth Baden | ICE | Co-decides with David. Contact for the budget-intelligence follow-up | *(named)* at 39:38 and 39:46 |
+| Shilonda Holmes (transcribed "Shalanda") | ICE (inferred) | On the invite, out of office. Role unknown | 1:01 |
+| Cathaleen Winter | ICE (inferred) | Cc'd on the invite. Not mentioned in the transcript; attendance and role unknown | Invite only |
+| Holly, "Mr. Bovich" (spelling unverified) | Department level (inferred) | Separate meeting in about two weeks | Mentioned at 37:58; not on the invite |
+| Ramatu, Rolf | ICE (inferred) | Possible attendees of the budget-intelligence session | 40:30; not on the invite |
 
-The client organization is not named reliably. "AIDS OCFO" at 1:45 is almost certainly a mis-transcription. Other references are "OFM" (24:23) and "DHS has some interest in improving this for the entire department" (37:36). The working assumption is the OFM of a DHS component, which is **inferred**. FEMA is mentioned as a separate Guidehouse engagement (22:54), not as the client.
+The invite also went to the ICE CFO scheduling mailbox. The transcript has at least 14 distinct Otter labels for about 9 speakers, which confirms the labels split and merge people.
+
+**The client is ICE's Office of the CFO**, as the invite shows. "AIDS OCFO" at 1:45 is a mis-transcription of "ICE OCFO". "OFM" (24:23) is an office within it, and "DHS has some interest in improving this for the entire department" (37:36) refers to ICE's parent department. FEMA is mentioned as a separate Guidehouse engagement (22:54), not as the client.
 
 ---
 
 ## 1. Executive summary
 
-- **The client asked for invoice intake automation, not reconciliation.** The demo showed three-way-match reconciliation. Tracy redirected immediately: "our biggest hurdle right now isn't so much in actually resolving and paying the invoices than it is the actual intake in getting the invoices ready for payment" (16:50).
-- **Lori named a specific "quick win":** read vendor PDFs from the shared mailbox, fill the FileOnQ data fields, check validity, report a confidence level ("98% a valid invoice"), then "create that record in the file on Q system. Maybe even pass through that PDF … for attachment" (25:02).
+- **The client asked for invoice intake automation, not reconciliation.** The demo showed three-way-match reconciliation. Traci redirected immediately: "our biggest hurdle right now isn't so much in actually resolving and paying the invoices than it is the actual intake in getting the invoices ready for payment" (16:50).
+- **Laurie named a specific "quick win":** read vendor PDFs from the shared mailbox, fill the FileOnQ data fields, check validity, report a confidence level ("98% a valid invoice"), then "create that record in the file on Q system. Maybe even pass through that PDF … for attachment" (25:02).
 - **Earlier automation failed because vendor layouts vary:** "other RPA efforts or other intelligence efforts really struggles because the invoices are so very different from vendor to vendor" (28:05). On the existing bots, David said they "helped a little bit, but not enough" (36:41).
 - **The goal is less labor and less rework.** David said they should "go from the need of having 30 people down to maybe two or three" (31:23), and that records go through "345, hands doing nothing but quality check reviews" (36:20; read as 3 to 5).
 - **A human stays in the loop.** "I don't think we'll ever get away from having to have a human in the loop at intake" (David, 31:23).
@@ -50,13 +55,13 @@ The client organization is not named reliably. "AIDS OCFO" at 1:45 is almost cer
 
 | # | Step | Source | Status |
 |---|---|---|---|
-| 1 | Vendors email invoices as attachments to a **shared mailbox**. | "we get invoices through a shared mailbox as attachments from wherever they're coming from" (Tracy *(by content)*, 17:15) | Stated |
-| 1a | The attachments are mostly PDFs. | "those PDFs that are coming in through the vendor for the invoices" (Lori, 24:58) | Stated for PDFs. The share of scanned images versus digital PDFs is unknown |
-| 2 | **Technicians** check the mailbox every day. | "the technicians have to vet that mailbox every day" (Tracy *(by content)*, 17:29) | Stated |
+| 1 | Vendors email invoices as attachments to a **shared mailbox**. | "we get invoices through a shared mailbox as attachments from wherever they're coming from" (Traci *(by content)*, 17:15) | Stated |
+| 1a | The attachments are mostly PDFs. | "those PDFs that are coming in through the vendor for the invoices" (Laurie, 24:58) | Stated for PDFs. The share of scanned images versus digital PDFs is unknown |
+| 2 | **Technicians** check the mailbox every day. | "the technicians have to vet that mailbox every day" (Traci *(by content)*, 17:29) | Stated |
 | 3 | Each item is reviewed for the **required data elements** of a proper invoice. | "review it to make sure that it has all of the various data elements to establish a proper invoice" (17:29) | Stated. The checklist itself was not given (see §10) |
-| 4 | The technician creates a **FileOnQ record** and fills specific data fields. | "they are creating a file in File on Q, which is what we use as our data repository as well as our workflow for invoices up until the certification and payment from Treasury" (17:29); "creating those records, filling out specific data fields, checking to see if it's a valid invoice" (Lori, 25:02) | Stated |
-| 4a | The invoice PDF is stored with the FileOnQ record. | Lori proposes to "pass through that PDF … for attachment" (25:02). FileOnQ is called the "data repository" (17:29) | **Inferred** that technicians attach PDFs manually today |
-| 5 | Improper invoices are **rejected**. | "We can reject an invoice." (19:47, *(uncertain)*, probably Tracy) | Stated that rejection exists. **How** (email to vendor, timing, who) was not described |
+| 4 | The technician creates a **FileOnQ record** and fills specific data fields. | "they are creating a file in File on Q, which is what we use as our data repository as well as our workflow for invoices up until the certification and payment from Treasury" (17:29); "creating those records, filling out specific data fields, checking to see if it's a valid invoice" (Laurie, 25:02) | Stated |
+| 4a | The invoice PDF is stored with the FileOnQ record. | Laurie proposes to "pass through that PDF … for attachment" (25:02). FileOnQ is called the "data repository" (17:29) | **Inferred** that technicians attach PDFs manually today |
+| 5 | Improper invoices are **rejected**. | "We can reject an invoice." (19:47, *(uncertain)*, probably Traci) | Stated that rejection exists. **How** (email to vendor, timing, who) was not described |
 | 6 | **Quality-check reviews** repeat 3 to 5 times per record. | "The same kind of record goes through 345, hands doing nothing but quality check reviews." (David, 36:20) | Stated. "3 to 5" is our reading of "345". **Where** in the flow the reviews happen is not stated |
 | 7 | Once the invoice is established as proper, it goes **to the field for approval**: the contracting officer's representative (COR) or another responsible person does receiving and acceptance. | "once we pass all of those markers to establish a proper invoice, and we know what we're paying. Then it goes out to the field for them to do the approvals on their end from like the contracting officer, representative, or whoever is responsible for providing, receiving, and acceptance" (19:51) | Stated |
 | 7a | Field routing runs through FileOnQ's workflow. | FileOnQ is "our workflow for invoices up until the certification and payment" (17:29) | **Inferred** |
@@ -73,11 +78,11 @@ The client organization is not named reliably. "AIDS OCFO" at 1:45 is almost cer
 
 | Pain point or goal | Supporting quote | Time | Speaker |
 |---|---|---|---|
-| **Intake is the bottleneck**, not resolution or payment | "our biggest hurdle right now isn't so much in actually resolving and paying the invoices than it is the actual intake in getting the invoices ready for payment" | 16:50 | Tracy *(by content)* |
-| | "digging through that bail box [mailbox] and getting items into file loan Q [FileOnQ] is our biggest hurdle area right now with accounts payable" | 17:29 | Tracy *(by content)* |
+| **Intake is the bottleneck**, not resolution or payment | "our biggest hurdle right now isn't so much in actually resolving and paying the invoices than it is the actual intake in getting the invoices ready for payment" | 16:50 | Traci *(by content)* |
+| | "digging through that bail box [mailbox] and getting items into file loan Q [FileOnQ] is our biggest hurdle area right now with accounts payable" | 17:29 | Traci *(by content)* |
 | | "We're just getting crushed on invoice intake." / "It's killing us." | 35:57 / 36:10 | David / *(uncertain)* |
-| **Record creation and data entry into FileOnQ** | "one of the biggest hurdles that we have is … the intake into filing queue, creating those records, filling out specific data fields, checking to see if it's a valid invoice" | 25:02 | Lori |
-| **Vendor format variety breaks RPA and bots** | "every single vendor has their own way of presenting an invoice … other RPA efforts or other intelligence efforts really struggles because the invoices are so very different from vendor to vendor" | 28:05 | *(uncertain)*: Tracy or Lori. David replies "So Tracy, Lori" |
+| **Record creation and data entry into FileOnQ** | "one of the biggest hurdles that we have is … the intake into filing queue, creating those records, filling out specific data fields, checking to see if it's a valid invoice" | 25:02 | Laurie |
+| **Vendor format variety breaks RPA and bots** | "every single vendor has their own way of presenting an invoice … other RPA efforts or other intelligence efforts really struggles because the invoices are so very different from vendor to vendor" | 28:05 | *(uncertain)*: Traci or Laurie. David replies "So Tracy, Lori" |
 | | "the bot stuff had to be not perfect, but pretty close in order to work" | 30:09 | David |
 | | "bots helped a little bit, but not enough" | 36:41 | David |
 | **Rework from 3 to 5 quality reviews per record** | "we shoot ourselves in the head by working, reworking, and working again. The same kind of record goes through 345, hands doing nothing but quality check reviews." | 36:20 | David |
@@ -85,8 +90,8 @@ The client organization is not named reliably. "AIDS OCFO" at 1:45 is almost cer
 | **Staffing goal: about 30 people down to 2 or 3** | "we should be able to go from the need of having 30 people down to maybe two or three, right? That could do this workload if it's done correctly." | 31:23 | David |
 | **Human in the loop stays** | "I don't think we'll ever get away from having to have a human in the loop at intake" | 30:49–31:23 | David |
 | **Possibly bypass or eliminate FileOnQ** | "maybe we can get to the position where we can bypass or completely eliminate file on queue. If we're actually doing intake right, we might not have to have an aggregator up front. We can go straight into our paying system, right? FFMS or … straight to the treasury … as well as a cost reduction on licensing." | 31:23 | David |
-| **SAP S/4HANA transition** | "thinking ahead to SAP S/4HANA and moving away from the Phyllom Q [FileOnQ] software program … how this could potentially work with SAP to help us flow the information from receipt to payment" | 22:23 | *(uncertain)*: a client speaker who said "I'm not an IT person"; possibly Tracy |
-| **Fit with the current process** | "does it sit on top of what we're already doing?" | 16:40 | Tracy *(by content)* |
+| **SAP S/4HANA transition** | "thinking ahead to SAP S/4HANA and moving away from the Phyllom Q [FileOnQ] software program … how this could potentially work with SAP to help us flow the information from receipt to payment" | 22:23 | *(uncertain)*: a client speaker who said "I'm not an IT person"; possibly Traci |
+| **Fit with the current process** | "does it sit on top of what we're already doing?" | 16:40 | Traci *(by content)* |
 | **Wants a measurable prototype** | "we've got to get some prototypes up and actually get it to the point where it's learning" / "At the first instance of running this, what can we expect for the accuracy rates?" | 32:06 | *(uncertain)*: labelled Speaker 14, but continuous with David's remarks |
 | **Willing to commit SME labor** | "maybe it's going to take some labor. So I know we're going to get some pushback there, some subject matter expertise labor." | 34:32 | David |
 | **Focus on AP rather than audit/PBC** | "I would rather focus my efforts on AP at the moment because it's just weighing me down." | 37:36 | *(uncertain)*: a client speaker "from an audit perspective" |
@@ -99,15 +104,16 @@ The client organization is not named reliably. "AIDS OCFO" at 1:45 is almost cer
 
 | Stakeholder | Role | Concerns raised | What they need to see to say yes | Decision role |
 |---|---|---|---|---|
-| **Tracy** *(by content)* | AP intake owner (inferred) | Where the data comes from (16:30). Whether it sits on top of current work (16:40). Fit to intake rather than reconciliation (17:03). "if this is really setting us down that right path to help automate that piece of the pie" (18:14) | Her own kinds of invoices, taken from a mailbox, landing as correct FileOnQ-ready records, with less technician effort and fewer QC passes (inferred) | Co-owns prototype design with Lori: "I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping" (38:53) |
-| **Lori** | OFM chief of staff; designed the original invoice consolidation process (24:23) | Whether we can build an interface that creates or updates records (24:40). Validity checks with a confidence level (25:02) | The quick win from 25:02: PDF in, fields filled, validity confidence, FileOnQ record created with the PDF attached | Process authority and co-owner of prototyping (38:53). David: "She can design it better again" (36:41) |
+| **Traci** *(by content)* | AP intake owner (inferred) | Where the data comes from (16:30). Whether it sits on top of current work (16:40). Fit to intake rather than reconciliation (17:03). "if this is really setting us down that right path to help automate that piece of the pie" (18:14) | Her own kinds of invoices, taken from a mailbox, landing as correct FileOnQ-ready records, with less technician effort and fewer QC passes (inferred) | Co-owns prototype design with Laurie: "I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping" (38:53) |
+| **Laurie** | OFM chief of staff; designed the original invoice consolidation process (24:23) | Whether we can build an interface that creates or updates records (24:40). Validity checks with a confidence level (25:02) | The quick win from 25:02: PDF in, fields filled, validity confidence, FileOnQ record created with the PDF attached | Process authority and co-owner of prototyping (38:53). David: "She can design it better again" (36:41) |
 | **David** | Senior leader (inferred) | Vendor variety and the limits of bots (30:09). Labor and rework (36:20). FileOnQ licensing cost (31:23). Accuracy at first run (32:06, *(uncertain)*) | A project plan, CONOPS and "a bill" (38:53). A credible labor-reduction story. An honest accuracy answer | **Decides with Beth**: "so Beth and I can sit down, review it, and figure out if, when, and how" (34:58) |
 | **Beth** | Senior leader (inferred) | "we definitely need help" (39:46) | Same package as David (inferred) | **Co-decider** (34:58). Also the contact for a separate budget-intelligence session (40:00) |
 | **CIO organization** | Not present | Named by Sean as the gate for all connections (18:22, 20:25) | Security documentation, the data-flow design, the hosting environment, and the AI service authorizations (inferred) | **Approval gate** for any connection to the mailbox, FileOnQ or financial systems |
 | **AP technicians** | Process users today; likely reviewers in the PoC | Not present | A review screen that is faster than manual entry (inferred) | Users and SME labor (34:32) |
 | **CORs / field approvers** | Downstream receiving and acceptance (19:51) | Not present | Unchanged handoff, or better data at handoff (inferred) | Out of PoC scope |
 | **Holly, Mr. Bovich** | Department level (inferred from 38:26: "that's up at the department level") | How this works with "fiber" (37:58; unclear term) and whether to offer it to components (38:41) | Unknown | Possible department-wide sponsors. Not decision-makers for this AP PoC |
-| **Unidentified "audit perspective" speaker** (37:36) | Client, possibly audit or internal controls | Prefers to focus on AP now | — | Influencer |
+| **Unidentified "audit perspective" speaker** (37:36) | ICE, possibly audit or internal controls. Could be David, Beth or Cathaleen Winter if she attended *(uncertain)* | Prefers to focus on AP now | — | Influencer |
+| **Shilonda Holmes, Cathaleen Winter** | ICE (inferred). On the invite (Cathaleen on Cc), roles unknown. Shilonda was out of office (1:01) | None recorded | Unknown | Keep them on the follow-up distribution. Confirm roles (§10) |
 
 ---
 
@@ -122,7 +128,7 @@ Priority: **Must** (the PoC fails without it), **Should** (expected, can be thin
 | F1 | **Ingest from a mailbox.** Pick up new emails, pull out PDF attachments, and keep the link between each email and its attachments. PoC: a test mailbox or a simulated drop folder, never the client's mailbox. | Must | 17:15, 25:02 |
 | F2 | **Classify attachments** as invoice or not (statements, past-due notices, supporting documents) and split multi-invoice PDFs. | Should | Inferred. Shared mailboxes typically mix document types |
 | F3 | **Extract the invoice fields from varied vendor layouts** without per-vendor templates. | Must | 28:05, 30:09 |
-| F4 | **Confidence per field and per invoice.** Each field gets a score and a pointer to where it was found (page, region). The invoice gets an overall status (Ready / Needs review / Reject candidate). | Must | Lori: "98% a valid invoice" (25:02) |
+| F4 | **Confidence per field and per invoice.** Each field gets a score and a pointer to where it was found (page, region). The invoice gets an overall status (Ready / Needs review / Reject candidate). | Must | Laurie: "98% a valid invoice" (25:02) |
 | F5 | **Validity checks against the required data elements** using a client-supplied checklist, plus arithmetic checks (line items add up to the total) and format checks. Each failed check has a reason. | Must | 17:29, 25:02 |
 | F6 | **Human review queue.** The PDF appears beside the extracted fields. The reviewer can correct, approve or reject, and each action is recorded. | Must | 31:23 ("human in the loop"), 26:14 |
 | F7 | **Create a FileOnQ record with the PDF attached** through a mock FileOnQ adapter in the PoC. The record is created only after reviewer approval. | Must (mock) | 25:02 |
@@ -157,13 +163,13 @@ Priority: **Must** (the PoC fails without it), **Should** (expected, can be thin
 | 1 | **Project plan** | Asked by David | 34:58, 38:53 | Owed by us, to be pulled together "between you [Tracy] and Sean or Felice" (34:58) |
 | 2 | **Concept of operations** | Asked by David | 38:53 | Owed by us |
 | 3 | **Cost estimate**: "and then a bill. You know, what do we have to resource" | Asked by David | 38:53 | Owed by us. Covers our cost and the client resources needed |
-| 4 | **Prototype**: "we've got to get some prototypes up" | Client-side *(uncertain; likely David)* | 32:06 | Expected. Who does what is to be decided with Tracy and Lori (38:53) |
+| 4 | **Prototype**: "we've got to get some prototypes up" | Client-side *(uncertain; likely David)* | 32:06 | Expected. Who does what is to be decided with Traci and Laurie (38:53) |
 | 5 | **Client SME labor** for prototyping | David acknowledged it | 34:32 | Client commitment-in-principle; "pushback" expected |
 | 6 | **COE-style prioritization exercise** (as done at FEMA) | Offered by Guidehouse *(uncertain; likely Felice)* | 35:08 | Optional. The client scoped to AP only for now (38:53) |
 | 7 | **Share the slides** after the discussion | Promised by Felice | 2:49 | Owed by us. Check the slides for the same accuracy issues before sending |
 | 8 | **Meeting with Holly and Mr. Bovich "in about two weeks"** on how this works with "fiber" | Guidehouse speaker *(uncertain)* | 37:58 | Around Oct 19, 2026. "Fiber" is unidentified. The client said "I don't think fiber works with anything" (38:19). Clarify the term |
 | 9 | **Separate budget-intelligence conversation** with Beth; Beth and David may bring Ramatu and Rolf | Offered by Guidehouse; Beth agreed | 40:00, 40:30 | To schedule. Out of PoC scope |
-| 10 | **About 10 minutes with Tracy on "a couple other contracts"** after the call | *(uncertain)* | 38:53 | Out of scope; listed for completeness |
+| 10 | **About 10 minutes with Traci on "a couple other contracts"** after the call | *(uncertain)* | 38:53 | Out of scope; listed for completeness |
 | 11 | **Claims Sean made that read as commitments**: connect to "any system" (18:22); mailbox and FileOnQ "very easily spin up" (25:42); "learns as it goes" (30:46); "designed specifically to work with … S4hana" (23:09) | Sean | as noted | Reframe these in the follow-up note (§7) and the plan |
 | 12 | Deferred: PBC management orchestrator demo | Offered | 2:49, 37:12 | Not taken up |
 
@@ -195,7 +201,7 @@ These were not on your list. They are not necessarily wrong, but each could set 
 
 > **Subject:** Thank you, and a few clarifications ahead of the AP intake plan
 >
-> Tracy, Lori, David and Beth,
+> Traci, Laurie, David and Beth,
 >
 > Thank you for the time on Monday and for the candid feedback. It sharpened our focus: the problem worth solving first is invoice intake, meaning getting invoices from the shared mailbox into FileOnQ as complete, valid records, with less rework along the way.
 >
@@ -206,7 +212,7 @@ These were not on your list. They are not necessarily wrong, but each could set 
 > 3. **Learning.** The demo does not contain a trained model. Its confidence scores, explanations and agent steps are illustrative. The improvement loop David described is achievable as a managed process: reviewer corrections become labeled data, we measure accuracy by field and by vendor, and we adjust the extraction and validation from those results. We'll build that measurement into the prototype rather than promise it in advance.
 > 4. **Integrations.** Mailbox and FileOnQ connectors do not exist yet, and how quickly they can be built depends on the interfaces FileOnQ offers and on CIO approval. We propose a prototype that uses a test mailbox, synthetic invoices and a mock FileOnQ record, with a short discovery step on the real FileOnQ interface running alongside it.
 >
-> None of this changes the approach Lori outlined: PDFs in from the mailbox, fields extracted and checked against the required data elements, a confidence level for each invoice, a technician approving or rejecting, and a FileOnQ record created with the PDF attached. It does mean the plan will show the actual accuracy on test invoices before anyone relies on it.
+> None of this changes the approach Laurie outlined: PDFs in from the mailbox, fields extracted and checked against the required data elements, a confidence level for each invoice, a technician approving or rejecting, and a FileOnQ record created with the PDF attached. It does mean the plan will show the actual accuracy on test invoices before anyone relies on it.
 >
 > To size the plan accurately, it would help to have a short conversation about monthly invoice volume, the number of vendors, the checklist your technicians use for a proper invoice, and a FileOnQ point of contact.
 >
@@ -217,7 +223,7 @@ These were not on your list. They are not necessarily wrong, but each could set 
 
 ## 8. PoC scope proposal
 
-### 8.1 Smallest credible demo of Lori's quick win
+### 8.1 Smallest credible demo of Laurie's quick win
 
 A single end-to-end flow on synthetic data:
 
@@ -378,6 +384,8 @@ Build extraction behind one interface. Benchmark **Option A** against **Option B
 14. What identity provider should the review UI use at pilot?
 15. What was "fiber" (37:58)?
 
+*Stakeholder check (not numbered):* what roles do Shilonda Holmes and Cathaleen Winter have in AP intake or approval, and should they review the plan?
+
 ### Process
 16. What is the exact checklist for a "proper invoice" that technicians use today?
 17. What is the rejection workflow: who notifies the vendor, how, and on what timeline? Does the 7-day notice rule for improper invoices under the Prompt Payment rules apply as the client applies it?
@@ -416,7 +424,7 @@ Build extraction behind one interface. Benchmark **Option A** against **Option B
 
 ### Assumptions (to confirm)
 
-- The client is a DHS component's OFM. The PoC uses only synthetic data and needs no ATO.
+- The PoC uses only synthetic data and needs no ATO. (The client, ICE OCFO, is now confirmed from the invite.)
 - Invoices arrive mostly as PDFs. A meaningful share are scans.
 - FAR 32.905(b) is a reasonable draft checklist until the client provides theirs.
 - Client SMEs can give a few hours a week during the PoC.
@@ -449,7 +457,7 @@ Durations are ranges. They assume a core team of 3 or 4, synthetic data in the P
 ### Roles
 
 - **Guidehouse:** engagement lead; solution architect; AI/ML engineer; full-stack engineer; AP process SME/analyst. Pilot adds a security/ATO specialist and a test or quality lead.
-- **Client:** process owners (Tracy, Lori); AP technicians as reviewers; FileOnQ administrator; CIO/ISSO; decision-makers (David, Beth).
+- **Client:** process owners (Traci, Laurie); AP technicians as reviewers; FileOnQ administrator; CIO/ISSO; decision-makers (David, Beth).
 
 ### CONOPS contents
 
