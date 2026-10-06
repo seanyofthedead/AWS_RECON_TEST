@@ -70,7 +70,7 @@ The invite also went to the ICE CFO scheduling mailbox. The transcript has at le
 | 9 | **Certification** and **Treasury payment**. | "up until the certification and payment from Treasury" (17:29) | Stated. Who certifies, and through which Treasury system, was not described |
 | — | Existing **bots/RPA** cover parts of the process. | "because of the bots that OFM has created" (Guidehouse speaker, 26:14); "bots helped a little bit, but not enough" (David, 36:41) | Stated that bots exist. **What** they automate is unknown |
 
-**Not stated in the meeting:** invoice volume, number of vendors, current staffing per step, cycle times, error or rejection rates, and the FileOnQ field list. The "1000s of invoices arrive each month" at 6:16 is from Sean's generic pitch, not client data. David's "30 people" (31:23) is the only staffing figure. It is **inferred** to be the intake workforce, but he did not say so explicitly.
+**Not stated in the meeting:** invoice volume, number of vendors, current staffing per step, cycle times, error or rejection rates, and the FileOnQ field list. The "1000s of invoices arrive each month" at 6:16 is from Sean's generic pitch, not client data. David's "30 people" (31:23) is the only staffing figure. It is **inferred** to be the intake workforce, but David did not say so explicitly.
 
 ---
 
