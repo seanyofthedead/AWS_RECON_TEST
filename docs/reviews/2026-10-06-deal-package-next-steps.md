@@ -1,27 +1,38 @@
-# What we owe to move the ICE AP intake deal forward
+# What we owe David to move the ICE AP intake deal forward
 
 Prepared October 6, 2026. This builds on [the Oct 5 demo review](2026-10-05-client-demo-review-and-poc-scope.md), which holds the quotes, requirements, architecture options and open questions; section numbers marked "§" refer to that review. Timestamps are from the Oct 5 transcript.
 
-## Read this first: who is "Greg"?
+## Who decides, and what David asked for
 
-The only Greg in the Oct 5 transcript is a **FEMA** contact. A Guidehouse speaker described the COE prioritization exercise done with that contact: "we went through with Greg and we said, 'Here are like the 15 things that are relevant to you'" (35:08). Greg is not on the ICE invite and was not named as an ICE stakeholder.
+**David Dalenberg** asked for the package and decides with **Beth Baden**: "we we need a kind of a project plan pulled together between you and Sean or Felice or whoever. You know, so Beth and I can sit down, review it, and figure out if, when, and how we're going to incorporate this" (34:32–34:58). Beth needs a copy of everything David gets.
 
-At ICE, the people who decide are **David Dalenberg and Beth Baden**: "so Beth and I can sit down, review it, and figure out if, when, and how we're going to incorporate this" (David, 34:58). **Traci Billings and Laurie Nadeau** shape the prototype: "I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping" (38:53).
+David named the contents at 38:53: "I'm just looking for project plan, concept of ops, you know, all the normal kind of grassroots stuff, and then a bill. You know, what do we have to resource."
 
-This document is written so it works in either case:
+David also set the scope ("let's take a smaller bite at the apple, work and focus in on the AP stuff") and handed prototype design to **Traci Billings and Laurie Nadeau** ("I'll leave it to Tracy and and Lori and the team to kind of figure out … who needs to do what when it comes to prototyping", 38:53). Traci and Laurie should therefore review drafts before David sees them.
 
-- **If Greg is an internal Guidehouse approver** (for example, the partner or account lead who signs off on pursuits), Part A is what Greg needs to approve sending Part B to the client.
-- **If "Greg" was meant to be David or Beth at ICE**, Part B is the client package, and Part A is our internal readiness check.
-- **If this is about FEMA,** none of the ICE material applies, and a separate write-up is needed.
+## What David needs to see to say yes
 
----
+Each item below is something David raised. The right-hand column shows which deliverable answers it.
 
-## Part A — Internal approval: what an approver needs before the package goes out
+| David's concern or goal | Quote (time) | Answered by |
+|---|---|---|
+| Relief on intake, the top priority | "I'm most interested in getting Tracy and the team some relief on that initial ingest and review process" (35:57); "that's my number one focus area is that ingest intake process" (36:41) | B3 scope and B6: the PoC targets intake only |
+| Bots weren't enough; vendor layouts vary | "the bot stuff had to be not perfect, but pretty close in order to work" (30:09); "bots helped a little bit, but not enough" (36:41) | B6: PoC tested on vendor layouts held out from tuning |
+| Labor: about 30 people down to 2 or 3 | "go from the need of having 30 people down to maybe two or three" (31:23) | B5 value framing: measured reviewer minutes per invoice, not a headcount promise |
+| Rework from repeated QC | "The same kind of record goes through 345, hands doing nothing but quality check reviews … spending $1 to save a nickel" (36:20) | B4: where validated extraction could replace QC passes; B8 asks what each pass checks |
+| Human in the loop at intake | "I don't think we'll ever get away from having to have a human in the loop at intake" (31:23) | B4: human review is built into the CONOPS |
+| Learning and improvement | "then it learns as it goes" (30:09) | B1 corrects this; B4 describes the managed improvement process |
+| Accuracy at first run (*attribution uncertain*: labelled Speaker 14, probably David) | "At the first instance of running this, what can we expect for the accuracy rates?" (32:06) | B3 risk section and B6 metrics: measured on held-out invoices, gated on the rate of invoices wrongly marked ready (§11) |
+| Possibly eliminating FileOnQ and its licensing cost | "maybe we can get to the position where we can bypass or completely eliminate file on queue … cost reduction on licensing" (31:23) | B3 phase 4 and B4 transition section: kept as a later decision, and the design keeps the option open |
+| The client's own labor cost | "maybe it's going to take some labor. So I know we're going to get some pushback there, some subject matter expertise labor" (34:32) | B5 client-resource estimate: SME hours, kept small and stated per phase |
+| Start small | "let's take a smaller bite at the apple" (38:53) | B5 pricing options: a fixed PoC or phases with go/no-go points |
+
+## Part A — Internal readiness before the package goes to David
 
 | # | Item | What it contains | Why it's needed |
 |---|---|---|---|
 | A1 | **Opportunity summary** (1 page) | Client: ICE OCFO, OFM accounts payable. Ask: intake automation, mailbox → validated FileOnQ record (16:50, 25:02). Decision-makers: David and Beth. Next step: plan, CONOPS and "a bill" (38:53). Upside: department-level interest (37:36, 37:58) and budget-intelligence follow-on (40:00) | Go/no-go on pursuing |
-| A2 | **Claims-correction disclosure** | The four overclaims from the demo (§7.1) and the plan to correct them in writing (§7.3), plus the other statements flagged in §7.2 | Reputational and contractual risk. The approver should know before anything else is sent |
+| A2 | **Claims-correction disclosure** | The four overclaims from the demo (§7.1) and the plan to correct them in writing (§7.3), plus the other statements flagged in §7.2 | Reputational and contractual risk. Our account lead should sign off before anything else is sent |
 | A3 | **Contract-vehicle and scope check** | Is this work in scope of an existing ICE task order, or does it need a modification or new vehicle? The "under 10%" remark (38:26) is garbled and needs an answer. Is there any organizational-conflict-of-interest question if Guidehouse also supports ICE audit or internal-controls work? (The "audit perspective" speaker at 37:36 suggests that area is involved.) | Determines whether we can propose at all, and how |
 | A4 | **Staffing plan** | Named or TBD people for the roles in §12: engagement lead, solution architect, AI/ML engineer, full-stack engineer, AP process SME; ATO specialist for the pilot. Availability for the first 2 to 4 weeks | Credibility of the schedule in the plan |
 | A5 | **Pricing approval** | Labor build from the estimate template (B5) at approved rates, other direct costs, and pricing structure (fixed-price PoC versus time-and-materials versus phased with gates) | Nothing with a dollar figure goes to the client without this |
@@ -30,7 +41,7 @@ This document is written so it works in either case:
 
 ---
 
-## Part B — The client package
+## Part B — The package for David and Beth
 
 David asked for three things by name (38:53): a **project plan**, a **concept of operations**, and **"a bill. You know, what do we have to resource."** B3 to B5 deliver those. B1, B2 and B6 to B8 make them credible and let the client act on them.
 
@@ -179,7 +190,7 @@ The Holly and Mr. Bovich meeting "in about two weeks" (37:58, so around Oct 19) 
 
 ## Ready-to-send checklist
 
-- [ ] It is confirmed who "Greg" is and what role Greg plays in this deal
+- [ ] Beth receives everything David does
 - [ ] The correction note (B1) is sent, and the slides (B2) are scrubbed and sent
 - [ ] The contract vehicle and any conflict-of-interest question are answered (A3)
 - [ ] Staffing is confirmed (A4) and pricing approved (A5)
