@@ -47,7 +47,7 @@ David asked for three things by name (38:53): a **project plan**, a **concept of
 
 ### B1. Follow-up note with the corrections — send first
 
-- **What:** the email drafted in §7.3, sent by Sean, thanking the team, restating the intake focus, correcting the four claims, and asking for a short discovery call.
+- **What:** the email drafted in §7.3, sent by Sean, thanking the team, restating the intake focus, correcting the four claims, and saying the plan, CONOPS and estimate are coming. No discovery call is requested: discovery happens only after a contract is in place.
 - **To:** Traci, Laurie, David and Beth, plus whoever else the account lead advises (Shilonda Holmes and Cathaleen Winter were on the invite).
 - **Timing (proposed):** within a few days of the demo, before or with the slides. It must go out before the plan does.
 - **Done when:** approved by the account lead (A2) and sent.
@@ -84,7 +84,7 @@ The document David and Beth will "sit down, review" (34:58). Suggested structure
 7. **Risks and mitigations** (§11). Include the honest accuracy answer.
 8. **Governance:** a weekly working session with Traci and Laurie, and a decision review with David and Beth at each gate.
 
-**Done when:** Traci and Laurie have reviewed a draft before it goes to David and Beth. This matches David's direction that the plan be "pulled together between you and Sean or Felice" (34:58).
+**Done when:** approved internally and sent to David and Beth. David wanted the plan "pulled together between you and Sean or Felice" (34:58), but no discovery or working sessions happen before a contract is in place. Whether Traci and Laurie see a draft before award is the account lead's call; otherwise copy them on the release.
 
 ### B4. Concept of operations (CONOPS)
 
@@ -154,9 +154,9 @@ The CIO approval gate came up repeatedly (18:22, 20:25), so give the CIO's offic
 - **AI governance:** human oversight, testing documentation, and the agency's AI-use inventory if required.
 - **Questions for the CIO's office:** §10 Q12–Q14.
 
-### B8. Discovery request (data and access list)
+### B8. Discovery request (data and access list) — after award
 
-Send this with the plan, or ahead of it, so Phase 0 can start as soon as the client says yes. Draw it from §10, prioritized:
+**A contract must be in place before any discovery.** This list is not sent ahead of the package. It becomes the Phase 0 agenda, and the project plan, CONOPS and estimate are built on stated assumptions in its place (see `docs/proposal/`). At most, include it in the package as "what Phase 0 will collect". Draw it from §10, prioritized:
 
 1. **The proper-invoice checklist technicians use today.** This is the single most important input.
 2. Monthly invoice volume and peak volume; number of vendors and how concentrated volume is among them.
@@ -173,18 +173,18 @@ Not required to move forward, and not recommended before B1 to B5 are out. If a 
 
 ---
 
-## Proposed sequence
+## Proposed sequence (contract before discovery)
 
-All timing below is a proposal, not something the client asked for.
+Discovery happens only after award, so the package is built from what ICE said on Oct 5 plus stated assumptions. Version 0.1 drafts of the plan, CONOPS and estimate are in `docs/proposal/`. No durations are given here: the speed now depends on internal pricing and approval turnaround.
 
-| When (from Oct 6) | Step |
-|---|---|
-| Days 1–3 | Internal: A1, A2, A3. Account lead approves B1 |
-| Days 2–5 | Send **B1** (corrections) and **B2** (slides); request a discovery call |
-| Week 1–2 | Discovery call with Traci and Laurie; collect B8 answers. Internal: A4, A6 |
-| Week 2–3 | Draft **B3, B4, B6, B7**; build B5 at approved rates (A5); quality review (A7) |
-| Week 3 | Review drafts with Traci and Laurie |
-| Week 3–4 | Send the final package to David and Beth; offer a walkthrough |
+| Step | What | Owner |
+|---|---|---|
+| 1 | Internal review of the drafts: A1 to A3, A6, A7. Account lead approves B1 | Engagement lead |
+| 2 | Send **B1** (corrections) and **B2** (slides), ahead of or with the package | Sean |
+| 3 | Apply rates and ODCs; choose the pricing structure (A5); confirm staffing (A4) | Pricing; engagement lead |
+| 4 | Finalize **B3 to B7** from the drafts; final quality read (A7) | Team |
+| 5 | Send the package to David and Beth, copying Traci and Laurie; offer a walkthrough | Engagement lead |
+| 6 | Contract award, then Phase 0 discovery (B8) and re-baselining of the plan | Team with ICE |
 
 The Holly and Mr. Bovich meeting "in about two weeks" (37:58, so around Oct 19) is a department-level conversation. It is separate from this AP deal, but whoever attends should know the B1 corrections have gone out, so the department hears the same accurate story.
 
@@ -194,7 +194,7 @@ The Holly and Mr. Bovich meeting "in about two weeks" (37:58, so around Oct 19) 
 - [ ] The correction note (B1) is sent, and the slides (B2) are scrubbed and sent
 - [ ] The contract vehicle and any conflict-of-interest question are answered (A3)
 - [ ] Staffing is confirmed (A4) and pricing approved (A5)
-- [ ] The plan, CONOPS, estimate, PoC definition and security summary have been reviewed by Traci and Laurie
+- [ ] The plan, CONOPS, estimate, PoC definition and security summary have passed internal review
 - [ ] None of the documents contains "learns as it goes", "immutable", "very easily", "free", "vetted by DoD" or invented FileOnQ details
-- [ ] The discovery request (B8) has gone to the client
+- [ ] Every client fact in the package traces to the Oct 5 meeting; everything else is labelled as an assumption Phase 0 will confirm
 - [ ] There is a named owner and a date for each deliverable

@@ -214,7 +214,7 @@ These were not on your list. They are not necessarily wrong, but each could set 
 >
 > None of this changes the approach Laurie outlined: PDFs in from the mailbox, fields extracted and checked against the required data elements, a confidence level for each invoice, a technician approving or rejecting, and a FileOnQ record created with the PDF attached. It does mean the plan will show the actual accuracy on test invoices before anyone relies on it.
 >
-> To size the plan accurately, it would help to have a short conversation about monthly invoice volume, the number of vendors, the checklist your technicians use for a proper invoice, and a FileOnQ point of contact.
+> We will follow shortly with the project plan, concept of operations and estimate David asked for. Where we don't yet have details such as invoice volume or FileOnQ's interface options, the plan states its assumptions and confirms them in a first discovery phase.
 >
 > Thank you again,
 > Sean
