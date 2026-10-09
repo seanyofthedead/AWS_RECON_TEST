@@ -76,7 +76,7 @@ The pilot estimate is the least certain figure in this document. It depends on F
 
 | Item | Phases 0–2 | Pilot | Basis |
 |---|---|---|---|
-| Prototype hosting environment (Guidehouse-provided sandbox) | [ ] | — | Small environment for 8–14 weeks |
+| Prototype hosting environment (Guidehouse-provided sandbox) | [ ] | — | Small environment for 8–14 weeks. The pilot runs on Databricks or Azure in ICE's cloud environment, whichever is available (confirmed in Phase 0); ICE-side platform costs are not included |
 | OCR, document-AI and LLM service usage | [ ] | [ ] | Usage-based. Prototype volume is small (a synthetic set of 100–200 documents, run repeatedly). Pilot cost scales with ICE's monthly invoice volume, which is unknown |
 | Synthetic test data generation | Included in labor | — | |
 | ICE-side environment, licensing, FileOnQ changes | Not included | Not included | ICE responsibility, if any |

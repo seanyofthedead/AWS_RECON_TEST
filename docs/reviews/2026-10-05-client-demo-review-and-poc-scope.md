@@ -321,7 +321,7 @@ Downstream steps stay as they are today: field approval by the COR → FileOnQ �
 
 ### Option B: managed document-AI service with a prebuilt invoice model
 
-- **How it works.** A cloud document-AI service with a prebuilt invoice or expense model returns fields, per-field confidence and bounding boxes. Examples include the invoice models from AWS, Microsoft Azure and Google Cloud. Our rules layer validates the output, and gaps can be filled with custom models or Option A.
+- **How it works.** A cloud document-AI service with a prebuilt invoice or expense model returns fields, per-field confidence and bounding boxes. On Azure this would be its document-AI invoice model; on Databricks, a comparable model served in the workspace. *(Updated Oct 9: the product will be built on Databricks or Azure, depending on what is available in ICE's cloud environment, not on AWS or Google Cloud.)* Our rules layer validates the output, and gaps can be filled with custom models or Option A.
 - **Pros.** Native per-field confidence and locations. A mature OCR pipeline. Less to build.
 - **Cons.**
   - Prebuilt schemas are commercial-invoice oriented and may miss federal elements.
@@ -337,7 +337,7 @@ Downstream steps stay as they are today: field approval by the COR → FileOnQ �
 
 ### Recommendation for the PoC
 
-Build extraction behind one interface. Benchmark **Option A** against **Option B** on the same synthetic set, using the §8.4 metrics, and keep validation deterministic in both. Add Option C only if Phase 0 shows that volume is concentrated in a few vendors. The final choice will likely depend on which cloud and AI services the client's CIO has already authorized (§10).
+Build extraction behind one interface. Benchmark **Option A** against **Option B** on the same synthetic set, using the §8.4 metrics, and keep validation deterministic in both. Add Option C only if Phase 0 shows that volume is concentrated in a few vendors. The final choice will likely depend on which cloud and AI services the client's CIO has already authorized (§10). *(Updated Oct 9: the platform will be Databricks or Azure, whichever ICE's cloud environment offers; see [the PoC design](2026-10-09-intake-poc-design.md) §3.)*
 
 ### Where FileOnQ and S/4HANA fit
 
@@ -356,7 +356,7 @@ Build extraction behind one interface. Benchmark **Option A** against **Option B
 
 ### FedRAMP and authority to operate (ATO)
 
-- **PoC.** Synthetic data in a contractor sandbox. Confirm with the CIO that this needs no ATO. The current demo runs on commercial AWS in us-east-1 with Cognito. That is acceptable for synthetic data only.
+- **PoC.** Synthetic data in a contractor sandbox. Confirm with the CIO that this needs no ATO. The current demo runs on commercial AWS in us-east-1 with Cognito. That is acceptable for synthetic data only, and the intake product will not be built on AWS: it targets Databricks or Azure (updated Oct 9).
 - **Pilot or production.** All cloud services, including OCR, document AI and LLM endpoints, must be FedRAMP-authorized at the client's required impact level. The impact level is likely Moderate, but that is inferred and must be confirmed. The system will need an agency ATO, or must inherit and extend one. Invoices contain tax IDs and banking details, so expect PII and sensitive financial-data controls.
 - **AI governance.** Expect the agency's AI-use policy and current federal AI guidance to apply: use-case inventory, human oversight, and testing documentation. Confirm which versions apply.
 - **Records.** The audit log and invoice images fall under records-retention schedules. Confirm the retention period.
@@ -379,7 +379,7 @@ Build extraction behind one interface. Benchmark **Option A** against **Option B
 9. What do the existing OFM bots automate, on what platform, and do they write to FileOnQ?
 10. How does FileOnQ interface to the financial system? Is it FFMS? (Confirm the name.)
 11. What is the S/4HANA timeline? Will S/4HANA replace FileOnQ's workflow, and does the program include invoice capture?
-12. Which cloud environments and AI/OCR services are already authorized, and at what impact level?
+12. Which cloud environments and AI/OCR services are already authorized, and at what impact level? In particular, is Databricks or Azure available in ICE's cloud environment? (The product will be built on whichever is available.)
 13. What is the CIO approval path: sandbox rules, ISSO contact, ATO expectations for a prototype versus a pilot?
 14. What identity provider should the review UI use at pilot?
 15. What was "fiber" (37:58)?
@@ -485,7 +485,7 @@ No dollar figures until Phase 0 answers volume, environment and FileOnQ question
 ## Top 5 decisions before building the PoC
 
 1. **When and how to send the corrections.** Send the §7.3 note before the plan, or fold it into the plan's cover note. Also decide whether to address the extra items in §7.2: "free", "any system", "designed for S/4HANA", auditor access, and the FEMA branding.
-2. **Extraction approach and hosting.** Benchmark OCR+LLM against a document-AI service, or commit to one. Decide which cloud or sandbox to build in, ideally one aligned with what the client's CIO already authorizes.
+2. **Extraction approach and hosting.** Benchmark OCR+LLM against a document-AI service, or commit to one. Decide which cloud or sandbox to build in, ideally one aligned with what the client's CIO already authorizes. *(Updated Oct 9: Databricks or Azure, depending on what ICE's cloud environment offers; the PoC is built locally first.)*
 3. **Integration realism.** For the mailbox, choose a real test mailbox or a simulated inbox folder. For FileOnQ, decide whether to pursue interface discovery with the client in parallel or stay mock-only until the pilot.
 4. **Scope boundary and codebase.** Confirm the PoC stops at "FileOnQ record created", with COR, FFMS, Treasury, S/4HANA and the bypass excluded. Decide whether to build a new intake app or extend this reconciliation repo, which has reusable UI but simulated logic and browser-only storage.
 5. **What you commit to in the plan and the bill.** Choose the success metrics to promise (recommended: false-accept rate as the gate, plus field accuracy and reviewer minutes), whether targets are set only after Phase 0, and how to package cost: PoC-only fixed scope versus phased PoC → pilot with go/no-go gates.
