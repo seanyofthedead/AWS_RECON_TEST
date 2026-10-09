@@ -13,3 +13,14 @@ Send these files to ICE in this order. Each file is ready except where noted.
 The Word files are generated from `source/*.md`. Edit the Word files directly for small changes. For larger changes, edit the source and regenerate with pandoc.
 
 The internal versions, with notes on where each number came from, are in `../proposal/`. Do not send those.
+
+## Regenerating the Word files
+
+From the repo root, with pandoc installed:
+
+```bash
+mkdir -p /tmp/ice-md
+python3 docs/ice-release/build/build.py docs/ice-release/source docs/ice-release docs/ice-release/build/reference.docx /tmp/ice-md
+```
+
+The script sets table column widths, keeps table rows from splitting across pages, and applies the styles in `build/reference.docx`.
