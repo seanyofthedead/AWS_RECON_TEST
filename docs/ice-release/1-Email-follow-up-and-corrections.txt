@@ -1,0 +1,27 @@
+SEND FIRST, before the package. From: Sean Pedersen.
+To: Traci Billings, Laurie Nadeau, David Dalenberg, Beth Baden
+Cc: Felice Fava, Melanie Geesaman, Gina Oliva (add Shilonda Holmes and Cathaleen Winter if the account lead agrees)
+Attach: the October 5 slides (only after removing any slide that repeats the four points below)
+
+Subject: Thank you, and a few clarifications ahead of the AP intake plan
+
+Traci, Laurie, David and Beth,
+
+Thank you for the time on Monday and for the candid feedback. It sharpened our focus: the problem worth solving first is invoice intake, meaning getting invoices from the shared mailbox into FileOnQ as complete, valid records, with less rework along the way.
+
+Before we send the project plan, concept of operations and estimate, I want to tighten four things I said during the demo, so the plan starts from an accurate baseline.
+
+1. Audit trail. I called the Resolved page an immutable audit log. In the demo build, reviewer decisions are stored in the browser for presentation purposes and can be reset. For your environment we would keep a server-side, append-only record of every extraction, edit and approval, tied to the user, and the concept of operations spells that out.
+
+2. Software provenance. The demo is built on widely used open-source components, but it was not written or vetted by DoD. I misspoke. Anything we build for you would go through your CIO's security review, and the plan lists the components and services involved.
+
+3. Learning. The demo does not contain a trained model. Its confidence scores, explanations and agent steps are illustrative. The improvement loop David described is achievable as a managed process: reviewer corrections become labeled data, we measure accuracy by field and by vendor, and we adjust the extraction and validation from those results. We will build that measurement into the prototype rather than promise it in advance.
+
+4. Integrations. Mailbox and FileOnQ connectors do not exist yet, and how quickly they can be built depends on the interfaces FileOnQ offers and on CIO approval. We propose a prototype that uses a test mailbox, synthetic invoices and a mock FileOnQ record, with the real FileOnQ interface explored in a first discovery phase.
+
+None of this changes the approach Laurie outlined: PDFs in from the mailbox, fields extracted and checked against the required data elements, a confidence level for each invoice, a technician approving or rejecting, and a FileOnQ record created with the PDF attached. It does mean the plan will show actual accuracy on test invoices before anyone relies on it.
+
+We will follow shortly with the project plan, concept of operations and estimate David asked for. Where we don't yet have details such as invoice volume or FileOnQ's interface options, the plan states its assumptions and confirms them in a first discovery phase.
+
+Thank you again,
+Sean

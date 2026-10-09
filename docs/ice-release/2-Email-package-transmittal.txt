@@ -1,0 +1,24 @@
+SEND SECOND, with the three documents, once pricing has filled in the cost estimate and the account lead has approved release. From: engagement lead or Sean.
+To: David Dalenberg, Beth Baden
+Cc: Traci Billings, Laurie Nadeau, Felice Fava
+Attach: ICE_AP_Intake_Project_Plan_DRAFT.docx, ICE_AP_Intake_CONOPS_DRAFT.docx, ICE_AP_Intake_Cost_Estimate_DRAFT.docx
+
+Subject: AP invoice intake prototype: project plan, concept of operations and estimate
+
+David and Beth,
+
+As you asked on October 5, attached are a project plan, a concept of operations and a cost and resource estimate for an accounts payable invoice intake prototype.
+
+In brief:
+
+- Scope: invoices from a mailbox, data extracted and checked against the required elements of a proper invoice, a confidence level for each invoice, a technician approving or rejecting each one, and a FileOnQ-ready record with the PDF attached. A technician reviews every record.
+- Approach: discovery (2-4 weeks), prototype build (4-6 weeks) and evaluation with your technicians (2-4 weeks), followed by a decision point before any pilot. The prototype uses synthetic invoices and does not connect to ICE systems.
+- What you will get: measured results, including technician minutes per invoice, accuracy on invoice layouts the system has never seen, and how often an invoice marked ready contains an error, so a pilot decision rests on evidence.
+- What we need from ICE: the estimate lists the staff time by phase, mainly from Traci, Laurie and a few technicians.
+
+Because we have not yet had a discovery session, the plan states its assumptions and confirms them in the first phase.
+
+We would welcome 30 minutes to walk you through it at your convenience.
+
+Best regards,
+[Name]
